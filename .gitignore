@@ -1,0 +1,10 @@
+*.pdf
+*.root
+*.dat
+*.txt
+*.o
+*.png
+*.pid
+analyze_light
+
+!optical_detectors_dune1x2x6.txt
