@@ -3,7 +3,7 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "test_file.root";
+	const char *output_file_name = "timing_resolution_data_0.5tpbcov_25mev.root";
 
 	// events to generate
 	// number
@@ -12,7 +12,7 @@ namespace parameters {
 	// type
 
 	// energy
-	const double energy = 20.1;	// MeV
+	const double energy = 25;	// MeV
 	
 	// position
 	// random position ranges
@@ -23,11 +23,11 @@ namespace parameters {
 	// semi_analytic hits
 
 	// timings
-	const bool include_timings = false;
+	const bool include_timings = true;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 	// reflected light
-	const bool include_reflected = false;
+	const bool include_reflected = true;
 
 
 	// photon detection system properties
@@ -44,6 +44,6 @@ namespace parameters {
 	const double t_singlet = 0.000000006; 		// 6ns 
 	const double t_triplet = 0.0000015; 		// 1.5 us
 	const double scint_time_window = 0.00001; 	// 10 us
-	const double particle_type = 0;				// ionising particle: 0 - electron, 1 - alpha
+	const double particle_type = 0;			// ionising particle: 0 - electron, 1 - alpha
 		
 }

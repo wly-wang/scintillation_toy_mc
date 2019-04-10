@@ -128,7 +128,7 @@ void data_output::add_data(const int &event_number, const int &optical_channel, 
 	// add entry for each photon
 	for (int i = 0; i < num_VUV; i++) {
 		data_time = times_vuv[i]; 
-        data_time_vis = times_vuv[i];
+        data_time_vuv = times_vuv[i];
 		data_tree_vuv->Fill();
         data_tree->Fill(); 
 	}
