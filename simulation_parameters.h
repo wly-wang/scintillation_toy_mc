@@ -3,16 +3,16 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "timing_resolution_data_0.5tpbcov_25mev.root";
+	const char *output_file_name = "efficiency_testing.root";
 
 	// events to generate
 	// number
-	const int number_events =  10000;
+	const int number_events =  25000;
 	
 	// type
 
 	// energy
-	const double energy = 25;	// MeV
+	const double energy = 100;	// MeV
 	
 	// position
 	// random position ranges
@@ -23,7 +23,7 @@ namespace parameters {
 	// semi_analytic hits
 
 	// timings
-	const bool include_timings = true;
+	const bool include_timings = false;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 	// reflected light

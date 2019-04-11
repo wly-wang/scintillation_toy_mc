@@ -165,15 +165,15 @@ public:
 	~semi_analytic_hits(){};
 
 	// hits calculating functions
-	int VUVHits(int Nphotons_created, TVector3 ScintPoint, TVector3 OpDetPoint, int optical_detector_type);
-	int VisHits(int Nphotons_created, TVector3 ScintPoint, TVector3 OpDetPoint, int optical_detector_type);
+	int VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
+	int VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
 
 	// gaisser-hillas function
 	static Double_t GaisserHillas(double *x, double *par);
 
 	// solid angle of rectangular aperture calculation functions
-	double omega(double a, double b, double d);
-	double solid(acc& out, TVector3 v);
+	double omega(const double &a, const double &b, const double &d);
+	double solid(const acc& out, const TVector3 &v);
 
 	// solid angle of circular aperture calculation functions
 	double Disk_SolidAngle(double *x, double *p);

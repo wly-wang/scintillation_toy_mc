@@ -53,7 +53,7 @@ semi_analytic_hits::semi_analytic_hits() {
 }
 
 // VUV hits calculation
-int semi_analytic_hits::VUVHits(int Nphotons_created, TVector3 ScintPoint, TVector3 OpDetPoint, int optical_detector_type) {
+int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
   gRandom->SetSeed(0);
 
   // distance and angle between ScintPoint and OpDetPoint
@@ -105,7 +105,7 @@ int semi_analytic_hits::VUVHits(int Nphotons_created, TVector3 ScintPoint, TVect
 }
 
 // Visible hits calculation
-int semi_analytic_hits::VisHits(int Nphotons_created, TVector3 ScintPoint, TVector3 OpDetPoint, int optical_detector_type) {
+int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
   gRandom->SetSeed(0);
 
   // 1). calculate total number of hits of VUV photons on reflective foils via solid angle + Gaisser-Hillas corrections:
@@ -136,10 +136,7 @@ int semi_analytic_hits::VisHits(int Nphotons_created, TVector3 ScintPoint, TVect
   // offset angle bin
   int j = (theta_cathode/delta_angulo);
   double cathode_hits_rec = GH[j]->Eval(distance_cathode)*cathode_hits_geo/cosine_cathode;
-  //double cathode_hits_rec = gRandom->Poisson( GH[j]->Eval(distance)*cathode_hits_geo/cosine_cathode );      // swap to this? 
-
-  //cout << cathode_hits_rec << endl;
-
+  
   // 2). calculate number of these hits which reach the Arapuca from the hotspot via solid angle 
 
   // set Arapuca geometry struct for solid angle function
@@ -157,17 +154,9 @@ int semi_analytic_hits::VisHits(int Nphotons_created, TVector3 ScintPoint, TVect
   // calculate solid angle of optical channel
   double solid_angle_detector = solid(detPoint, emission_relative);
 
-  //cout << solid_angle_detector << endl;
-
   // calculate number of hits via geometeric acceptance
-  // ##################################################################
-  // NOTE: there was an error here in previous version (if you had already copied this code), was using 4pi instead of 2pi i.e. forgetting about the vm2000 foils (doh!)
-  // required corrections are now factor 2 less due to this!
-
-  double hits_geo = (solid_angle_detector / (2*pi)) * cathode_hits_rec;
-
   
-  // ##################################################################
+  double hits_geo = (solid_angle_detector / (2*pi)) * cathode_hits_rec;
 
   // distance to hotspot
   double distance_vuv = sqrt(pow(ScintPoint[0] - hotspot[0],2) + pow(ScintPoint[1] - hotspot[1],2) + pow(ScintPoint[2] - hotspot[2],2));
@@ -180,12 +169,9 @@ int semi_analytic_hits::VisHits(int Nphotons_created, TVector3 ScintPoint, TVect
   // apply correction curves, 5th order polynomial 
   int k = (theta_vis/delta_angle);
   double hits_rec = gRandom->Poisson(VIS_pol[k]->Eval(distance_vuv)*hits_geo/cosine_vis);
-
  
   // round final result
   int hits_vis = std::round(hits_rec);
-
-  //cout << hits_vis << endl;
 
   return hits_vis;
 }
@@ -206,7 +192,7 @@ Double_t semi_analytic_hits::GaisserHillas(double *x,double *par) {
 
 // solid angle of rectanglular aperture calculation functions
 
-double semi_analytic_hits::omega(double a, double b, double d){
+double semi_analytic_hits::omega(const double &a, const double &b, const double &d){
 
   double aa = a/(2.0*d);
   double bb = b/(2.0*d);
@@ -215,7 +201,7 @@ double semi_analytic_hits::omega(double a, double b, double d){
 
 }
 
-double semi_analytic_hits::solid(acc& out, TVector3 v){
+double semi_analytic_hits::solid(const acc& out, const TVector3 &v){
 
   //v is the position of the track segment with respect to 
   //the center position of the arapuca window 
