@@ -62,8 +62,8 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
   double theta = acos(cosine)*180./pi;
 
   // calculate solid angle:
-  double solid_angle;
-  // Arapucas
+  double solid_angle = 0;
+  // rectangular aperture
   if (optical_detector_type == 1) {
     // set Arapuca geometry struct for solid angle function
     acc detPoint; 
@@ -76,7 +76,7 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
     // calculate solid angle
     solid_angle = solid(detPoint, ScintPoint_rel);
   }
-  // PMTs
+  // disk aperture
   else if (optical_detector_type == 0) {
     // offset in z-y plane
     double d = sqrt(pow(ScintPoint[1] - OpDetPoint[1],2) + pow(ScintPoint[2] - OpDetPoint[2],2));
@@ -137,25 +137,43 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   int j = (theta_cathode/delta_angulo);
   double cathode_hits_rec = GH[j]->Eval(distance_cathode)*cathode_hits_geo/cosine_cathode;
   
-  // 2). calculate number of these hits which reach the Arapuca from the hotspot via solid angle 
-
-  // set Arapuca geometry struct for solid angle function
-  acc detPoint; 
-  detPoint.ax = OpDetPoint[0]; detPoint.ay = OpDetPoint[1]; detPoint.az = OpDetPoint[2];  // centre coordinates of optical detector
-  detPoint.w = y_dimension_detector; detPoint.h = z_dimension_detector; // width and height in cm of arapuca active window
-
+  // 2). calculate number of these hits which reach the optical channel from the hotspot via solid angle 
+  
   // calculate hotspot location  
   TVector3 v_to_wall(x_foils - ScintPoint[0],0,0);        
   TVector3 hotspot = ScintPoint + v_to_wall;
 
-  // get hotspot coordinates relative to detpoint
-  TVector3 emission_relative = hotspot - OpDetPoint;
+  // solid angle :
+  double solid_angle_detector = 0;
+  // rectangular aperture
+  if (optical_detector_type == 1) {
+    // set Arapuca geometry struct for solid angle function
+    acc detPoint; 
+    detPoint.ax = OpDetPoint[0]; detPoint.ay = OpDetPoint[1]; detPoint.az = OpDetPoint[2];  // centre coordinates of optical detector
+    detPoint.w = y_dimension_detector; detPoint.h = z_dimension_detector; // width and height in cm of arapuca active window
 
-  // calculate solid angle of optical channel
-  double solid_angle_detector = solid(detPoint, emission_relative);
+    
+    // get hotspot coordinates relative to detpoint
+    TVector3 emission_relative = hotspot - OpDetPoint;
 
-  // calculate number of hits via geometeric acceptance
-  
+    // calculate solid angle of optical channel
+    solid_angle_detector = solid(detPoint, emission_relative);
+  }  
+  // disk aperture
+  else if (optical_detector_type == 0) {
+    // offset in z-y plane
+    double d = sqrt(pow(hotspot[1] - OpDetPoint[1],2) + pow(hotspot[2] - OpDetPoint[2],2));
+    // drift distance (in x)
+    double h =  sqrt(pow(hotspot[0] - OpDetPoint[0],2));
+    // Solid angle of a disk
+    solid_angle_detector = Disk_SolidAngle(d, h, radius);
+  }
+  else {
+    std::cout << "Error: Invalid optical detector type." << endl;
+    exit(1);
+  }
+
+  // calculate number of hits via geometeric acceptance  
   double hits_geo = (solid_angle_detector / (2*pi)) * cathode_hits_rec;
 
   // distance to hotspot
@@ -192,7 +210,7 @@ Double_t semi_analytic_hits::GaisserHillas(double *x,double *par) {
 
 // solid angle of rectanglular aperture calculation functions
 
-double semi_analytic_hits::omega(const double &a, const double &b, const double &d){
+double semi_analytic_hits::omega(const double &a, const double &b, const double &d) const{
 
   double aa = a/(2.0*d);
   double bb = b/(2.0*d);
@@ -201,7 +219,7 @@ double semi_analytic_hits::omega(const double &a, const double &b, const double 
 
 }
 
-double semi_analytic_hits::solid(const acc& out, const TVector3 &v){
+double semi_analytic_hits::solid(const acc& out, const TVector3 &v) const{
 
   //v is the position of the track segment with respect to 
   //the center position of the arapuca window 
@@ -262,7 +280,7 @@ double semi_analytic_hits::solid(const acc& out, const TVector3 &v){
 
 
 // solid angle of circular aperture
-double semi_analytic_hits::Disk_SolidAngle(double* x, double *p) {
+double semi_analytic_hits::Disk_SolidAngle(double *x, double *p) {
   const double d = x[0];
   const double h = x[1];
   const double b = p[0];
@@ -292,8 +310,6 @@ double semi_analytic_hits::Disk_SolidAngle(double* x, double *p) {
   if(d > b) {
     return 2.*aa*(TMath::Sqrt(1.-cc)*ROOT::Math::comp_ellint_3(cc,bb) - ROOT::Math::comp_ellint_1(bb));
   }
-
-  //ROOT::Math::
 
   return 0.;
 }

@@ -27,16 +27,15 @@ private:
 	// *************************************************************************************************
 	//                    	OPTICAL DETECTOR SHAPE/SIZE
 	// *************************************************************************************************	
-	//const int optical_detector_type;
-	// Arapucas: detector_type = 0;
-	double z_dimension_detector = 9.3;	// cm
-	double y_dimension_detector = 46.8;	// cm
-	// PMTs: decector_type = 1; 
+	// Arapucas: type = 1;
+	double y_dimension_detector = 9.3;	// cm
+	double z_dimension_detector = 46.8;	// cm
+	// PMTs: type = 0; 
 	double radius = 8*2.54/2.;	//	8" PMT diameter  // cm
 
 	// structure definition for solid angle of rectangle function
 	struct acc{
-		// ax,ay,az = centre of rectangle; w = width; h = height
+		// ax,ay,az = centre of rectangle; w = y dimension; h = z dimension
   		double ax, ay, az, w, h; 
 	};
 
@@ -62,17 +61,7 @@ private:
 					      {85.1942, 95.5351, 90.6834, 98.2426, 102.794, 123.284, 135.601, 153.886, 189.781}, 
 					      {118.062, 119.348, 111.604, 112.464, 121.064, 114.846, 120.385, 119.249, 106.702}, 
 					      {-200, -200, -200, -200, -200, -200, -200, -200, -200} };
-	//  DUNE-SP Gaisser-Hillas
-	/* NOT USED
-	// Arapuca parameters [front only] [preliminary]
-	const double GH_RS60cm_SP[4][9] = { {1.32447,1.28912,1.23944,1.17716,1.09635,0.97301,0.793501,0.639818,0.543092},
-										{109.833,114.854,132.236,135.188,135.101,154.642,155.632,162.43,100.01},
-										{30.8346,31.4721,27.5552,29.4935,33.4423,35.7115,49.885,57.4703,73.169},
-										{-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,} 
-									};
-	*/
-
-	// PMT parameters [Diego] ; these are used for the arapucas when making the visible corrections as ~ the same curves & these are much better fits							
+	//  DUNE-SP Gaisser-Hillas							
 	const double GH_RS60cm_SP[4][9] = { {1.37378, 1.3634, 1.31054, 1.23488, 1.14697, 1.01977, 0.886863, 0.751005, 0.592496}, 
 					     {113.764, 128.753, 122.512, 141.309, 140.16, 153.797, 170.915, 184.999, 199.248}, 
 					     {81.3747, 78.791, 87.2706, 81.9593, 92.3303, 102.592, 110.304, 112.577, 107.575}, 
@@ -134,10 +123,7 @@ private:
 	TF1* VIS_pol[9];
 	const double delta_angle = 10.;
 
-	// DUNE SP parameters [Arapuca front only] [preliminary]
-	// with reflections for walls, tested for middle 3rd region
-	// uses original GH_RS60cm_SP ; not arapuca ones that are commented out
-	
+	// DUNE SP parameters [Arapuca/supercell front window only] [preliminary]
 	const double VIS_RS60cm_SP[6][9] = { {1.8492,1.77663,1.66362,1.48639,1.31516,1.29986,1.4445,1.4445,1.4445},
 			{-0.0218717,-0.0198687,-0.0183486,-0.0152432,-0.012402,-0.0114963,-0.0133689,-0.0133689,-0.0133689},
 			{0.000166354,0.000141254,0.000138214,0.000114116,9.25045e-05,8.60675e-05,0.000107824,0.000107824,0.000107824},
@@ -172,8 +158,8 @@ public:
 	static Double_t GaisserHillas(double *x, double *par);
 
 	// solid angle of rectangular aperture calculation functions
-	double omega(const double &a, const double &b, const double &d);
-	double solid(const acc& out, const TVector3 &v);
+	double omega(const double &a, const double &b, const double &d) const;
+	double solid(const acc& out, const TVector3 &v) const;
 
 	// solid angle of circular aperture calculation functions
 	double Disk_SolidAngle(double *x, double *p);
