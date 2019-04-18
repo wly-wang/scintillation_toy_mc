@@ -3,24 +3,25 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "efficiency_testing.root";
+	const char *output_file_name = "crowns_model_testing.root";
 
 	// events to generate
 	// number
-	const int number_events =  25000;
+	const int number_events =  1000;
 	
 	// type
 
 	// energy
-	const double energy = 100;	// MeV
+	const double energy = 50;	// MeV
 	
 	// position
 	// random position ranges
-	const double x_position_range[2] {10,350};		// cm
+	const double x_position_range[2] {5,355};	// cm
 	const double y_position_range[2] {-500,500};	// cm
 	const double z_position_range[2] {400,1000};	// cm
 
 	// semi_analytic hits
+	const bool use_crowns_model = false;	// crowns model for visible hits, preliminary - note: only works for rectangular aperture 
 
 	// timings
 	const bool include_timings = false;
@@ -35,7 +36,7 @@ namespace parameters {
 	const double mesh_factor = 0.7;	
 	const double vuv_tpb_transmission = 0.5;
 	const double vis_tpb_transmission = 0.6; 
-	const double opdet_tpb_frac = 0.5; 
+	const double opdet_tpb_frac = 1; 
 	const double cathode_tpb_frac = 0.8;		
 
 

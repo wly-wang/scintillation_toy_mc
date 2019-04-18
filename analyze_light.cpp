@@ -142,8 +142,15 @@ int main() {
             if (parameters::include_reflected) {
             	// incident photons
             	t_ReflHits_i = std::chrono::steady_clock::now();
-            	int num_VIS_geo = hits_model.VisHits(number_photons, OpDetPoint, ScintPoint, op_channel_type);	// calculate hits
-            	t_ReflHits_f = std::chrono::steady_clock::now();			
+            	int num_VIS_geo = 0;
+                if (parameters::use_crowns_model) {
+                    double num_VIS_geo_double = hits_model.VisHits_crowns(number_photons, OpDetPoint, ScintPoint, op_channel_type);    // calculate hits with crowns model
+                    num_VIS_geo = std::round(num_VIS_geo_double);
+                } 
+                else {
+                    num_VIS_geo = hits_model.VisHits(number_photons, OpDetPoint, ScintPoint, op_channel_type);  // calculate hits with hotspot model
+                }         
+                t_ReflHits_f = std::chrono::steady_clock::now();			
             	timespan_Refl_hits += std::chrono::duration_cast<std::chrono::duration<double>>(t_ReflHits_f-t_ReflHits_i);
             	// apply additional factors QE etc.
             	for(int j = 0; j < num_VIS_geo; j++) {

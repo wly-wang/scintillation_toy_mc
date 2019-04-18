@@ -112,12 +112,12 @@ private:
 	// Cathode plane covered by foils
 	// Dune
 	// size
-	double y_dimension_foils = 1204.7255 + 5.466;	// cm	// 2 panels y height 602.36275 with 5.466cm gaps between
-	double z_dimension_foils = 1359.144 + 35.196;	// cm		// 6 panels of z width 226.524cm with 5.866cm gaps between them
+	const double y_dimension_foils = 1204.7255 + 5.466;	// cm		// 2 panels y height 602.36275 with 5.466cm gaps between
+	const double z_dimension_foils = 1359.144 + 35.196;	// cm		// 6 panels of z width 226.524cm with 5.866cm gaps between them
 	
 	// centre coordinates
 	// Dune
-	double x_foils = 363.38405; double y_foils = 0; double z_foils = 696.294;	// cm
+	const double x_foils = 363.38405; const double y_foils = 0; const double z_foils = 696.294;	// cm
 
 	// Visible hits correction [preliminary]
 	TF1* VIS_pol[9];
@@ -153,6 +153,9 @@ public:
 	// hits calculating functions
 	int VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
 	int VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
+
+	// updated concentric crowns based model of hits, preliminary
+	double VisHits_crowns(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
 
 	// gaisser-hillas function
 	static Double_t GaisserHillas(double *x, double *par);
