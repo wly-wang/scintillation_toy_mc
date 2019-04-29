@@ -1,19 +1,26 @@
 #ifndef TIMEPARAM_H
 #define TIMEPARAM_H
 
-// class containing imformation required for VUV timings parameterisation
-// builds array of parameterisations for pre-determined distances
-// calculates and returns the VUV transport time distribution using pre-built array of parameterisations
+// class containing information required for VUV and visible timings parameterisation in SBND
+/*
+VUV:
+   	landau + exponential parameterisation of VUV photon arrival times
+	The initial sampling of generated parameterisations to allow drawing random numbers from the distribution is slow. To improve efficiency, the parameterisations
+	are discretised in distance allowing each generated and sampled parameterisation to be stored in a vector so they to be used whenever subsequently required
+	without the need for regenerating. With 1cm step sizes in the discretisation this method is of order 100 times faster than original method, and the discrepancy
+	created is on sub-nanosecond scale. 
 
-// also contains function calculating vis light transport times
-// calculates shortest path considering refractive indices of each component in LAr
-// uses smearing of VUV parameterisation distribution to approximate the vis transport time distribution
+VIS:
+	The shortest path for the reflected is calculated considering refractive indices of each component in LAr giving the earliest arrival time.
+	The distribution of the arrival times is taken initially as the distribution of the VUV arrival times to the cathode plane, then these are smeared relative to
+	the fastest arrival time with an exponential distribution. This leaves the fastest arrival time unchanged and approximates the overall distribution in the 
+	visible light arrival times seen in full simulation. 
+*/	
 
 #include <vector>
 
 #include "TF1.h"
 #include "TVector3.h"
-
 
 class time_parameterisation {
 
@@ -23,7 +30,7 @@ private:
 	// *************************************************************************************************
 	// discretisation step size in cm, set in libraryanalyze_light_histo.h
 	const double step_size;
-	// maximum distance in cm parameterisations are generated for (only generated when required)
+	// maximum distance in cm parameterisations are generated for (only generated when required to prevent long initial loading time)
 	double d_max = 2500;
 	// vector containing generated VUV timing parameterisations
 	std::vector<TF1> VUV_timing;
@@ -59,12 +66,30 @@ private:
 	const double vis_vmean = 23.99; // cm/ns
 	const double vis_vrms = 0.07508; // cm/ns
 	// x-position of cathode foils, matching position of foils in gdml file - this needs changing if using different geometry
-	const double plane_depth = 363.38405;
+	const double cathode_plane_depth = 363.38405;	// DUNE specific
 	// refractive indices in LAr
 	double n_LAr_VUV = 2.632;       // effective index due to group vel.
 	double n_LAr_vis = 1.23;
 	double c_LAr_VUV = 0.12;        		// m/s
 	double c_LAr_vis = 0.29979/n_LAr_vis; 	// m/s
+
+	// Smearing parameters:
+	// DUNE specific
+	// smearing parameters are calculated for 5 fastest path off-set angle alpha bins: [0,10], [10,20], [20,30], [30,40], [40,alpha_max] deg
+	std::vector<double> refl_vdistances = {38.3841,63.3841,88.3841,113.384,138.384,163.384,188.384,213.384,238.384,263.384,288.384,313.384,338.384};
+
+	std::vector<std::vector<double>> cut_off_bins = { {397.174,446.549,474.813,528.457,537.279,602.126,622.074,627.156,636.266,721.015,730.136,736.706,685.158},
+							{435.09,483.062,515.06,559.063,591.479,593.486,617.949,681.81,730.478,702.538,686.021,664.066,654.974},
+							{465.746,530.772,580.235,611.371,642.964,654.374,677.029,668.885,656.286,635.362,635.65,605.085,582.609},
+							{519.167,569.909,578.288,596.77,610.101,624.591,601.545,591.347,605.464,578.32,551.695,549.043,514.396},		
+							{480.531,503.503,541.092,551.809,542.019,531.692,549.968,564.952,517.862,432.633,523.463,511.93,511.93}		// last entry has no data	
+	};
+	std::vector<std::vector<double>> tau_bins = { {5.62562,4.76375,3.33937,2.6725,2.16875,1.79792,1.5,1.28917,1.14875,1.015,0.789286,0.519643,0.553571},
+							{8.1424,4.63065,3.54856,2.77372,2.24805,1.95161,1.62822,1.38248,1.20475,1.07895,0.802715,0.653406,0.63129},
+							{7.27332,4.67257,3.54638,2.81115,2.36643,2.01963,1.7605,1.5292,1.38233,1.09352,0.852451,0.823318,0.771707},
+							{7.24211,4.46299,3.33076,2.65696,2.19649,1.83591,1.59777,1.43403,1.13786,1.15586,1.17439,1.39592,2.00126},
+							{7.00268,3.95271,2.88257,2.26547,1.83216,1.54479,1.38363,1.63333,1.57875,2.97708,2.52083,5.475,5.475} 	// last entry has no data
+						};
 
 	double pi =  3.141592653589793;
 
@@ -77,13 +102,18 @@ public:
 	~time_parameterisation(){};
 
 	// parameterisation generation function
-	void generateparam(const int index);
+	// generates TF1 and samples within required range for given distance (index), saving this object for later use
+	void generateparam(int index);
 
     // VUV arrival times calculation function
+    // returns an arrival time for each photon randomly drawn from the pre-sampled parameterisations 
     std::vector<double> getVUVTime(double distance, int number_photons);
 
-    // vis arrival times calculation function
+    // VIS arrival times calculation function
+    // returns an arrival time for each photon randomly drawn from the pre-sampled VUV parameterisations and smeared to approximate visible light distribution
     std::vector<double> getVisTime(TVector3 ScintPoint, TVector3 OpDetPoint, int number_photons);
+
+    double getVUVmin(int index);
 };
 
 #endif
