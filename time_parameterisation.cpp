@@ -1,4 +1,4 @@
-// implementation of transport time parameterisation model
+// implementation of time parameterisation class
 
 #include "time_parameterisation.h"
 #include "time_parameterisation_services.h"
@@ -14,19 +14,21 @@ using namespace std;
 // constructor
 time_parameterisation::time_parameterisation(const double size): step_size{size} {	
 	
-    // create empty parameterisations array, parameterisations generated as they are required
-    int num_params = (d_max - 25) / step_size;  // for d < 25cm, no parameterisaton - delta function instead
-	// default TF1() constructor gives function with 0 dimensions, can then check numDim to see if parameterisation has been generated	
-	vector<TF1> VUV_timing_temp(num_params,TF1());
+    // create vector of empty TF1s that will be replaces with the parameterisations that are generated as they are required
+    // default TF1() constructor gives function with 0 dimensions, can then check numDim to qucikly see if a parameterisation has been generated  
+    int num_params = (d_max - 25) / step_size;  // for d < 25cm, no parameterisaton, a delta function is used instead	
+    vector<TF1> VUV_timing_temp(num_params,TF1());
 	VUV_timing = VUV_timing_temp;
+    
     // initialise vectors to contain range parameterisations sampled to in each case
+    // when using TF1->GetRandom(xmin,xmax), must be in same range otherwise sampling is regenerated, this is the slow part!
     vector<double> VUV_empty(num_params, 0);
     VUV_max = VUV_empty;
     VUV_min = VUV_empty;
 }
 
 // parameterisation generation function
-void time_parameterisation::generateparam(const int index) {
+void time_parameterisation::generateparam(int index) {
     gRandom->SetSeed(0);
 
     // get distance 
@@ -83,14 +85,14 @@ void time_parameterisation::generateparam(const int index) {
     const int nq_max=1;
     double xq_max[nq_max];
     double yq_max[nq_max];    
-    xq_max[0] = 0.99;
+    xq_max[0] = 0.99;   // include 99%, 95% cuts out a lot of tail and time difference is negligible extending this
     fVUVTiming->GetQuantiles(nq_max,yq_max,xq_max);
     double max = yq_max[0];
     // min
     double min = t_direct_min;
 
     // set the number of points used to sample parameterisation
-    // for shorter distances, peak is sharper so more sensitive sampling required - values could be optimised 
+    // for shorter distances, peak is sharper so more sensitive sampling required - values could be optimised, but since these are only generate once difference is not significant
     int f_sampling;
     if (distance_in_cm < 50) { f_sampling = 10000; }
     else if (distance_in_cm < 100){ f_sampling = 5000; }
@@ -99,7 +101,7 @@ void time_parameterisation::generateparam(const int index) {
 
     // generate the sampling
     // the first call of GetRandom generates the timing sampling and stores it in the TF1 object, this is the slow part
-    // all subsequent calls check if it has been generated previously and are quick
+    // all subsequent calls check if it has been generated previously and are ~100+ times quicker
     double arrival_time = fVUVTiming->GetRandom(min,max);
     // add timing to the vector of timings and range to vectors of ranges
     VUV_timing[index] = *fVUVTiming;
@@ -144,24 +146,25 @@ vector<double> time_parameterisation::getVUVTime(double distance, int number_pho
 
 // vis arrival times calculation function
 vector<double> time_parameterisation::getVisTime(TVector3 ScintPoint, TVector3 OpDetPoint, int number_photons) {
-    
+    // *************************************************************************************************
+    // Calculation of earliest arrival times and corresponding unsmeared distribution
+    // *************************************************************************************************
+
     // calculate point of reflection for shortest path accounting for difference in refractive indicies    
     // vectors for storing results
     TVector3 image(0,0,0);
     TVector3 bounce_point(0,0,0);
-    TVector3 hotspot(0,0,0);
-    TVector3 v_to_wall(0,0,0);
     
     // distance to wall    
-    v_to_wall[0] = plane_depth - ScintPoint[0];
+    TVector3 v_to_wall(cathode_plane_depth-ScintPoint[0],0,0);
 
     // hotspot is point on wall where TPB is activated most intensely by the scintillation
-    hotspot = ScintPoint + v_to_wall;
+    TVector3 hotspot(cathode_plane_depth,ScintPoint[1],ScintPoint[2]);
     
     // define "image" by reflecting over plane
     image = hotspot + v_to_wall*(n_LAr_vis/n_LAr_VUV);
     
-    // find point of intersection with plane j of ray from the PMT to the image
+    // find point of intersection with plane cathode plane of ray from the optical detector to the image
     TVector3 tempvec = (OpDetPoint-image).Unit();
     double tempnorm= ((image-hotspot).Mag())/std::abs(tempvec[0]);
     bounce_point = image + tempvec*tempnorm;
@@ -208,43 +211,52 @@ vector<double> time_parameterisation::getVisTime(TVector3 ScintPoint, TVector3 O
     // sum
     double fastest_time = vis_time + vuv_time;
 
-    // calculate angle between scintillation point and reflection point
-    double delta_y = abs(ScintPoint[1] - bounce_point[1]);
-    double delta_z = abs(ScintPoint[2] - bounce_point[2]);
-    double delta_r = sqrt(pow(delta_y,2) + pow(delta_z,2));
-    double theta = atan(delta_r/(plane_depth - ScintPoint[0])) * (180/3.1415);  //in degrees
+    // calculate angle alpha between scintillation point and reflection point
+    double cosine_alpha = sqrt(pow(ScintPoint[0] - bounce_point[0],2)) / VUVdist;
+    double alpha = acos(cosine_alpha)*180./pi;
 
-    // calculate smearing parameters: 
-    //  1). tau = exponential smearing factor
-    //  2). delta = angular correction to range of random numbers generated, increases smearing as angle increases
-    //  3). cutoff = largest smeared time allowed, preventing excessively large times caused by exponential
-    double distance_cathode_plane = std::abs(plane_depth - ScintPoint[0]);
-    double tau = 12.300 - 0.1144*distance_cathode_plane + 0.0004546*pow(distance_cathode_plane,2) - 6.1954e-7*pow(distance_cathode_plane,3);
-    double delta = (0.003168 + 5.1967e-6*distance_cathode_plane + 2.205e-8*pow(distance_cathode_plane,2))*theta;
-    double cutoff = 227.188 + 1.3925*distance_cathode_plane - 0.001521*pow(distance_cathode_plane,2);
+    // determine smearing parameters using interpolation of generated points: 
+    //  1). tau = exponential smearing factor, varies with distance and angle
+    //  2). cutoff = largest smeared time allowed, preventing excessively large times caused by exponential
+    // distance to cathode
+    double distance_cathode_plane = std::abs(cathode_plane_depth - ScintPoint[0]);
+    // angular bin
+    int alpha_bin = alpha / 10;
+    if (alpha_bin >= tau_bins.size()) {
+        alpha_bin = tau_bins.size() - 1;      // default to the largest available bin if alpha larger than parameterised region found; i.e. last bin effectively [last bin start value, 90] deg bin
+    }
 
+    // cut-off and tau
+    double cutoff = interpolate( refl_vdistances, cut_off_bins[alpha_bin], distance_cathode_plane, true );
+    double tau = interpolate( refl_vdistances, tau_bins[alpha_bin], distance_cathode_plane, true );
+
+    // added failsafe in case tau extrapolation for d > 200 drops below zero [could it do this?]
+    if (tau < 0){
+        tau = 0;
+    }
+    
     // apply smearing:
     for (int i=0; i < number_photons; i++){
         double arrival_time = transport_time_vis[i];
         double arrival_time_smeared;
         // if time is already greater than cutoff or minimum smeared time would be greater than cutoff, do not apply smearing
-        if (arrival_time + (arrival_time-fastest_time)*(exp(-tau*log(1.0-delta))-1) >= cutoff) {
+        if (arrival_time + (arrival_time-fastest_time)*(exp(-tau*log(1.0))-1) >= cutoff) {
             arrival_time_smeared = arrival_time;
         }
         // otherwise smear
         else {
             int counter = 0;
             // loop until time generated is within cutoff limit
-            // most are within single attempt, very few take more than two, but this method could be made more efficient
+            // most are within single attempt, very few take more than two -- could be made more efficient, some way of avoiding sluggish do-while loop
             do {
-                // don't attempt smearings too many times for cases near cutoff (very few cases)
+                // don't attempt smearings too many times for cases near cutoff (very few cases, not smearing these makes negigible difference)
                 if (counter >= 10){
                     arrival_time_smeared = arrival_time; // don't smear
                     break;
                 }
                 else {
                     // generate random number in appropriate range            
-                    double x = gRandom->Uniform(0.5,1.0 - delta);
+                    double x = gRandom->Uniform(0.5,1.0);
                     // apply the exponential smearing
                     arrival_time_smeared = arrival_time + (arrival_time-fastest_time)*(exp(-tau*log(x))-1);
                 }
@@ -256,4 +268,14 @@ vector<double> time_parameterisation::getVisTime(TVector3 ScintPoint, TVector3 O
     }  
     
     return transport_time_vis;
+}
+
+double time_parameterisation::getVUVmin(int index){
+
+    if (VUV_min[index] == 0) {
+        generateparam(index);
+    }   
+
+    double min = VUV_min[index];
+    return min;
 }

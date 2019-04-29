@@ -3,7 +3,7 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "crowns_model_testing.root";
+	const char *output_file_name = "testing.root";
 
 	// events to generate
 	// number
@@ -24,7 +24,7 @@ namespace parameters {
 	const bool use_crowns_model = false;	// crowns model for visible hits, preliminary - note: only works for rectangular aperture 
 
 	// timings
-	const bool include_timings = false;
+	const bool include_timings = true;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 	// reflected light
