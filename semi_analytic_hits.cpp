@@ -48,6 +48,16 @@ semi_analytic_hits::semi_analytic_hits() {
     VIS_pol[bin]->SetParameters(pars_ini_vis);
   }
 
+  // initialise pol7 functions for visible hits correction, crowns model
+  double pars_ini_vis_crowns[8] = {0,0,0,0,0,0,0,0};
+  for (int bin = 0; bin < 9; bin++) {
+    VIS_pol_crowns[bin] = new TF1 ("pol", "pol7", 0, 2000);
+    for (int j = 0; j < 8; j++){
+      pars_ini_vis_crowns[j] = VIS_RS60cm_SP_Crowns[j][bin];
+    }
+    VIS_pol_crowns[bin]->SetParameters(pars_ini_vis_crowns);
+  }
+
   std::cout << std::endl;
 
 }
@@ -186,16 +196,27 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
 
   // apply correction curves, 5th order polynomial 
   int k = (theta_vis/delta_angle);
-  double hits_rec = gRandom->Poisson(VIS_pol[k]->Eval(distance_vuv)*hits_geo/cosine_vis);
- 
+  double hits_rec = VIS_pol[k]->Eval(distance_vuv)*hits_geo/cosine_vis;
+
+  // apply border correction
+  // interpolate in x for each y bin
+  std::vector<double> interp_vals = {0,0,0,0,0,0};
+  for (int i = 0; i < 6; i++){
+    interp_vals[i] = interpolate(vDistances_x, VIS_RS60_SP_Borders[k][i], std::abs(ScintPoint[0]), false);
+  }
+  // interpolate in y
+  double border_correction = interpolate(vDistances_y, interp_vals, std::abs(ScintPoint[1]), false);
+  // apply correction
+  double hits_rec_borders = border_correction * hits_rec / cosine_vis;
+
   // round final result
-  int hits_vis = std::round(hits_rec);
+  int hits_vis = std::round(hits_rec_borders);
 
   return hits_vis;
 }
 
 // Visible hits calculation using updated crowns method
-double semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
+int semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
 
   gRandom->SetSeed(0);
 
@@ -323,7 +344,7 @@ double semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVe
   }
 
 
-  // 2). calculate number of hit from each ring which reach the Arapuca via solid angle 
+  // 2). calculate number of hit from each ring which reach the optical detector via solid angle 
 
   // set Arapuca geometry struct for solid angle function
   acc detPoint; 
@@ -337,8 +358,25 @@ double semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVe
         
     // first bin, hits from centre of first square
     if (bin == 0) {
-      TVector3 emission_relative = square_centres[0] - OpDetPoint;
-      double solid_angle_detector = solid(detPoint, emission_relative);
+      double solid_angle_detector = 0;
+      // rectangle
+      if (optical_detector_type == 1) {
+        TVector3 emission_relative = square_centres[0] - OpDetPoint;
+        solid_angle_detector = solid(detPoint, emission_relative);
+      }
+      // disk
+      else if (optical_detector_type == 0) {
+        // offset in z-y plane
+        double d = sqrt(pow(square_centres[0][1] - OpDetPoint[1],2) + pow(square_centres[0][2] - OpDetPoint[2],2));
+        // drift distance (in x)
+        double h =  sqrt(pow(square_centres[0][0] - OpDetPoint[0],2));
+        // Solid angle of a disk
+        solid_angle_detector = Disk_SolidAngle(d, h, radius);
+      }
+      else {
+        std::cout << "Erorr: Invalid optical detector type." << std::endl;
+        exit(1);
+      }
       double hits_geo_ring = (solid_angle_detector / (2*pi)) * cathode_hits_rec[bin];
       // store
       hits_geo[bin] = hits_geo_ring;
@@ -367,8 +405,25 @@ double semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVe
       // loop over the fours spots
       for (int i = 0; i < 4; i++) {
         // solid angle from spot
-        TVector3 emission_relative = spot[i] - OpDetPoint;
-        double solid_angle_detector = solid(detPoint, emission_relative);
+        double solid_angle_detector = 0;
+        // recantular
+        if (optical_detector_type == 1) {
+          TVector3 emission_relative = spot[i] - OpDetPoint;
+          double solid_angle_detector = solid(detPoint, emission_relative);
+        }
+        // disk
+        else if (optical_detector_type == 0) {
+          // offset in z-y plane
+          double d = sqrt(pow(spot[i][1] - OpDetPoint[1],2) + pow(spot[i][2] - OpDetPoint[2],2));
+          // drift distance (in x)
+          double h =  sqrt(pow(spot[i][0] - OpDetPoint[0],2));
+          // Solid angle of a disk
+          solid_angle_detector = Disk_SolidAngle(d, h, radius);
+        }
+        else {
+           std::cout << "Erorr: Invalid optical detector type." << std::endl;
+           exit(1);
+        }
       
         // store hits from spot applying weighting factor
         if (width_sum == 0) hits_geo[bin] += 0;    // special case to prevent issues in case of zero width ring (i.e. previous ring already up to boundary)     
@@ -383,24 +438,33 @@ double semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVe
   for (int bin = 0; bin < 9; bin++) {
     hits_geo_total += hits_geo[bin];
   }
-
   
-/*  
-  // apply correction
+  // apply corrections to analytic model:
   TVector3 hotspot(plane_depth, ScintPoint[1], ScintPoint[2]);
   double distance_vuv = sqrt(pow(ScintPoint[0] - hotspot[0],2) + pow(ScintPoint[1] - hotspot[1],2) + pow(ScintPoint[2] - hotspot[2],2));
   double distance_vis = sqrt(pow(hotspot[0] - OpDetPoint[0],2) + pow(hotspot[1] - OpDetPoint[1],2) + pow(hotspot[2] - OpDetPoint[2],2));
   double distance_fullpath = distance_vuv + distance_vis;
   double cosine_vis = sqrt(pow(hotspot[0] - OpDetPoint[0],2)) / distance_vis;
   double theta_vis = acos(cosine_vis)*180./pi;
-
   int k = (theta_vis/delta_angle);
-  double hits_rec = VIS_pol3[k]->Eval(distance_vuv)*hits_geo_total/cosine_vis;
-*/
+
+  // geometric correction
+  double hits_rec = VIS_pol_crowns[k]->Eval(distance_vuv)*hits_geo_total/cosine_vis;
+
+  // border effect correction
+  // interpolate in x for each y bin
+  std::vector<double> interp_vals = {0,0,0,0,0,0};
+  for (int i = 0; i < 6; i++){
+    interp_vals[i] = interpolate(vDistances_x, VIS_RS60_SP_Crowns_Borders[k][i], std::abs(ScintPoint[0]), false);
+  }
+  // interpolate in y
+  double border_correction = interpolate(vDistances_y, interp_vals, std::abs(ScintPoint[1]), false);
+ 
+  // apply correction
+  double hits_rec_borders = border_correction * hits_rec / cosine_vis; 
   
   // round final result
-  //int hits_vis = std::round(hits_geo_total);
-  double hits_vis = hits_geo_total;
+  int hits_vis = std::round(hits_rec_borders);
   
   return hits_vis;
 }
@@ -535,4 +599,25 @@ double semi_analytic_hits::Disk_SolidAngle(double d, double h, double b) {
     _mathmore_loaded_ = true;
   }
   return Disk_SolidAngle(x,p);
+}
+
+double semi_analytic_hits::interpolate( const std::vector<double> &xData, const std::vector<double> &yData, double x, bool extrapolate ) {
+  int size = xData.size();
+  int i = 0;                                          // find left end of interval for interpolation
+  if ( x >= xData[size - 2] )                         // special case: beyond right end
+    {
+      i = size - 2;
+    }
+  else
+    {
+      while ( x > xData[i+1] ) i++;
+    }
+  double xL = xData[i], yL = yData[i], xR = xData[i+1], yR = yData[i+1]; // points on either side (unless beyond ends)
+  if ( !extrapolate )                                                    // if beyond ends of array and not extrapolating
+    {
+      if ( x < xL ) yR = yL;
+      if ( x > xR ) yL = yR;
+    }
+  double dydx = ( yR - yL ) / ( xR - xL );            // gradient
+  return yL + dydx * ( x - xL );                      // linear interpolation
 }

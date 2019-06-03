@@ -3,11 +3,11 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "testing.root";
+	const char *output_file_name = "LY_1.0tpbcov_fixed.root";
 
 	// events to generate
 	// number
-	const int number_events =  1000;
+	const int number_events =  100000;
 	
 	// type
 
@@ -16,15 +16,16 @@ namespace parameters {
 	
 	// position
 	// random position ranges
-	const double x_position_range[2] {5,355};	// cm
-	const double y_position_range[2] {-500,500};	// cm
+	const double x_position_range[2] {10,350};	// cm
+	const double y_position_range[2] {-300,300};	// cm
 	const double z_position_range[2] {400,1000};	// cm
 
 	// semi_analytic hits
-	const bool use_crowns_model = false;	// crowns model for visible hits, preliminary - note: only works for rectangular aperture 
+	// set to false
+	const bool use_crowns_model = false;	// crowns model for visible hits, preliminary
 
 	// timings
-	const bool include_timings = true;
+	const bool include_timings = false;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 	// reflected light
@@ -36,7 +37,7 @@ namespace parameters {
 	const double mesh_factor = 0.7;	
 	const double vuv_tpb_transmission = 0.5;
 	const double vis_tpb_transmission = 0.6; 
-	const double opdet_tpb_frac = 1; 
+	const double opdet_tpb_frac = 1.0; 
 	const double cathode_tpb_frac = 0.8;		
 
 

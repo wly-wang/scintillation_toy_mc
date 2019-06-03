@@ -59,7 +59,7 @@ double utility_functions::scintillation_function(const double *t, const double *
 	  triplet_part = 0.30;
 	}
 
-	double Scintillation = exp(-(time/t_singlet))*singlet_part/t_singlet;  + exp(-(time/t_triplet))*triplet_part/t_triplet;
+	double Scintillation = exp(-(time/t_singlet))*singlet_part/t_singlet + exp(-(time/t_triplet))*triplet_part/t_triplet;
 
 	return Scintillation;
 }

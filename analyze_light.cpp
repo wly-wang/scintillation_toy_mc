@@ -15,7 +15,6 @@
 
 
 // include parameter file
-// TO DO::: CREATE PARAMETER FILE THAT DOES NOT NEED RECOMPILING TO CHANGE
 #include "simulation_parameters.h"
 
 int main() {
@@ -28,7 +27,7 @@ int main() {
 	// -------- Initialise semi-analytic hits class ---------
 	semi_analytic_hits hits_model;
 
-	// -------- Initialise timing paramterisation class ---------
+	// -------- Initialise timing parametrisation class ---------
 	time_parameterisation times_model(parameters::timing_discretisation_step_size);
 
 	// -------- Initialise utility/energy spectrum class ---------
@@ -130,12 +129,12 @@ int main() {
             int num_VUV = 0;
             // incident photons
             t_VUVHits_i = std::chrono::steady_clock::now();
-            int num_VUV_geo = hits_model.VUVHits(number_photons, OpDetPoint, ScintPoint, op_channel_type);       // calculate hits       
+            int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
             t_VUVHits_f = std::chrono::steady_clock::now();
             timespan_VUV_hits += std::chrono::duration_cast<std::chrono::duration<double>>(t_VUVHits_f-t_VUVHits_i);
             // apply additional factors QE etc.            
             for(int i = 0; i < num_VUV_geo; i++) {
-                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::mesh_factor * parameters::vuv_tpb_transmission * parameters::opdet_tpb_frac) num_VUV++;    
+                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::mesh_factor * parameters::vuv_tpb_transmission * parameters::opdet_tpb_frac) num_VUV++;   
             }
             // Visible
             int num_VIS = 0;
@@ -144,18 +143,18 @@ int main() {
             	t_ReflHits_i = std::chrono::steady_clock::now();
             	int num_VIS_geo = 0;
                 if (parameters::use_crowns_model) {
-                    double num_VIS_geo_double = hits_model.VisHits_crowns(number_photons, OpDetPoint, ScintPoint, op_channel_type);    // calculate hits with crowns model
+                    double num_VIS_geo_double = hits_model.VisHits_crowns(number_photons, ScintPoint, OpDetPoint, op_channel_type);    // calculate hits with crowns model
                     num_VIS_geo = std::round(num_VIS_geo_double);
                 } 
                 else {
-                    num_VIS_geo = hits_model.VisHits(number_photons, OpDetPoint, ScintPoint, op_channel_type);  // calculate hits with hotspot model
+                    num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model
                 }         
                 t_ReflHits_f = std::chrono::steady_clock::now();			
             	timespan_Refl_hits += std::chrono::duration_cast<std::chrono::duration<double>>(t_ReflHits_f-t_ReflHits_i);
             	// apply additional factors QE etc.
             	for(int j = 0; j < num_VIS_geo; j++) {
                 	if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::mesh_factor * parameters::cathode_tpb_frac * (parameters::vis_tpb_transmission*parameters::opdet_tpb_frac + (1-parameters::opdet_tpb_frac))) num_VIS++;
-            	}
+                }
             }
 
             // if no photons from this event for this optical channel, go to the next channel.
