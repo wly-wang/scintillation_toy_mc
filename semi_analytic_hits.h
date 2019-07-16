@@ -118,12 +118,12 @@ private:
 	// Dune
 	const double x_foils = 363.38405; const double y_foils = 0; const double z_foils = 696.294;	// cm
 
-	// Visible hits correction [preliminary]
+	// Visible hits correction
 	TF1* VIS_pol[9];
 	TF1* VIS_pol_crowns[9];
 	const double delta_angle = 10.;
 
-	// DUNE SP parameters [Arapuca/supercell, front window only, no reflections] [preliminary]
+	// DUNE SP parameters [Arapuca/supercell, front window only, no reflections]
 	const double VIS_RS60cm_SP[6][9] = { {1.74822,1.66317,1.52748,1.2928,1.04857,0.73864,0.48047,0.48047,0.48047},
 		{-0.0215532,-0.0194171,-0.0174866,-0.0131815,-0.0103439,-0.006423,-0.00430898,-0.00430898,-0.00430898},
 		{0.000168414,0.000144778,0.000135693,9.62927e-05,8.14745e-05,4.83277e-05,3.55259e-05,3.55259e-05,3.55259e-05},

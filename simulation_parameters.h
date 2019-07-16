@@ -12,7 +12,7 @@ namespace parameters {
 	// type
 
 	// energy
-	const double energy = 50;	// MeV
+	const double energy = 100;	// MeV
 	
 	// position
 	// random position ranges
@@ -28,7 +28,7 @@ namespace parameters {
 	const bool include_timings = true;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
-	// reflected light
+	// visible light
 	const bool include_reflected = true;
 
 
@@ -37,7 +37,7 @@ namespace parameters {
 	const double mesh_factor = 0.7;	
 	const double vuv_tpb_transmission = 0.5;
 	const double vis_tpb_transmission = 0.6; 
-	const double opdet_tpb_frac = 0.8; 
+	const double opdet_tpb_frac = 1.0; 
 	const double cathode_tpb_frac = 0.8;		
 
 

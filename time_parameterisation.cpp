@@ -38,7 +38,7 @@ void time_parameterisation::generateparam(int index) {
     const double signal_t_range = 5000.;
    
     // parameterisation TF1    
-    TF1* fVUVTiming;
+    TF1 fVUVTiming;
       
     // For very short distances the time correction is just a shift
     double t_direct_mean = distance_in_cm/vuv_vgroup_mean;
@@ -52,12 +52,12 @@ void time_parameterisation::generateparam(int index) {
     if(distance_in_cm >= inflexion_point_distance) {
         double pars_far[4] = {t_direct_min, pars_landau[0], pars_landau[1], pars_landau[2]};
         // Set model: Landau 
-        fVUVTiming =  new TF1("fVUVTiming",model_far,0,signal_t_range,4);
-        fVUVTiming->SetParameters(pars_far);
+        fVUVTiming =  TF1("fVUVTiming",model_far,0,signal_t_range,4);
+        fVUVTiming.SetParameters(pars_far);
     }
     else {
         // Set model: Landau + Exponential 
-        fVUVTiming =  new TF1("fVUVTiming",model_close,0,signal_t_range,7); 
+        fVUVTiming =  TF1("fVUVTiming",model_close,0,signal_t_range,7); 
         // Exponential parameters
         double pars_expo[2];   
         // Getting the exponential parameters from the time parametrization
@@ -66,18 +66,18 @@ void time_parameterisation::generateparam(int index) {
         pars_expo[0] *= pars_landau[2];
         pars_expo[0] = log(pars_expo[0]);
         // this is to find the intersection point between the two functions:
-        TF1* fint = new TF1("fint",finter_d,pars_landau[0],4*t_direct_mean,5);
+        TF1 fint = TF1("fint",finter_d,pars_landau[0],4*t_direct_mean,5);
         double parsInt[5] = {pars_landau[0], pars_landau[1], pars_landau[2], pars_expo[0], pars_expo[1]};
-        fint->SetParameters(parsInt);
-        double t_int = fint->GetMinimumX();
-        double minVal = fint->Eval(t_int);
+        fint.SetParameters(parsInt);
+        double t_int = fint.GetMinimumX();
+        double minVal = fint.Eval(t_int);
         // the functions must intersect - output warning if they don't
         if(minVal>0.015) {
             std::cout<<"WARNING: Parametrization of VUV light discontinuous for distance = " << distance_in_cm << std::endl;
         }
-        delete fint;   
+        //delete fint;   
         double parsfinal[7] = {t_int, pars_landau[0], pars_landau[1], pars_landau[2], pars_expo[0], pars_expo[1], t_direct_min};
-        fVUVTiming->SetParameters(parsfinal);    
+        fVUVTiming.SetParameters(parsfinal);    
     }
 
     // calculate max and min distance relevant to sample parameterisation 
@@ -86,7 +86,7 @@ void time_parameterisation::generateparam(int index) {
     double xq_max[nq_max];
     double yq_max[nq_max];    
     xq_max[0] = 0.99;   // include 99%, 95% cuts out a lot of tail and time difference is negligible extending this
-    fVUVTiming->GetQuantiles(nq_max,yq_max,xq_max);
+    fVUVTiming.GetQuantiles(nq_max,yq_max,xq_max);
     double max = yq_max[0];
     // min
     double min = t_direct_min;
@@ -97,18 +97,17 @@ void time_parameterisation::generateparam(int index) {
     if (distance_in_cm < 50) { f_sampling = 10000; }
     else if (distance_in_cm < 100){ f_sampling = 5000; }
     else { f_sampling = 1000; }
-    fVUVTiming->SetNpx(f_sampling);    
+    fVUVTiming.SetNpx(f_sampling);    
 
     // generate the sampling
     // the first call of GetRandom generates the timing sampling and stores it in the TF1 object, this is the slow part
     // all subsequent calls check if it has been generated previously and are ~100+ times quicker
-    double arrival_time = fVUVTiming->GetRandom(min,max);
+    double arrival_time = fVUVTiming.GetRandom(min,max);
     // add timing to the vector of timings and range to vectors of ranges
-    VUV_timing[index] = *fVUVTiming;
+    VUV_timing[index] = fVUVTiming;
     VUV_max[index] = max;
     VUV_min[index] = min;
-
-    delete fVUVTiming;
+    
 }
 
 // VUV arrival times calculation function
