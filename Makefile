@@ -1,4 +1,4 @@
-CXXFLAGS=-std=c++17 -g $(shell root-config --cflags)
+CXXFLAGS=-std=c++11 -g $(shell root-config --cflags)
 LIBS=$(shell root-config --libs) -lMathMore
 
 run : analyze_light
