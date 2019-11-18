@@ -179,9 +179,6 @@ public:
 	int VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
 	int VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
 
-	// concentric crowns based model of hits, preliminary
-	int VisHits_crowns(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
-
 	// gaisser-hillas function
 	static Double_t GaisserHillas(double x, double *par);
 
