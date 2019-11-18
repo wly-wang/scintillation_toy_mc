@@ -89,20 +89,6 @@ int main() {
 	// --------- Calculate hits and times ----------
 	std::cout << "Determining number of photon hits..." << std::endl;
 
-	// efficiency testing
-	std::chrono::steady_clock::time_point t_all_i; std::chrono::steady_clock::time_point t_all_f;
-    std::chrono::steady_clock::time_point t_VUVTime_i; std::chrono::steady_clock::time_point t_VUVTime_f;
-    std::chrono::steady_clock::time_point t_ReflTime_i; std::chrono::steady_clock::time_point t_ReflTime_f;
-    std::chrono::steady_clock::time_point t_VUVHits_i; std::chrono::steady_clock::time_point t_VUVHits_f;
-    std::chrono::steady_clock::time_point t_ReflHits_i; std::chrono::steady_clock::time_point t_ReflHits_f;
-    std::chrono::duration<double> timespan_all (0.);
-    std::chrono::duration<double> timespan_VUV_times (0.);
-    std::chrono::duration<double> timespan_Refl_times (0.);
-    std::chrono::duration<double> timespan_VUV_hits (0.);
-    std::chrono::duration<double> timespan_Refl_hits (0.);
-    
-    t_all_i = std::chrono::steady_clock::now();
-
 	// loop each event in events list
 	for(int event = 0; event < parameters::number_events; event++) {
 
@@ -128,10 +114,7 @@ int main() {
             // VUV
             int num_VUV = 0;
             // incident photons
-            t_VUVHits_i = std::chrono::steady_clock::now();
             int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
-            t_VUVHits_f = std::chrono::steady_clock::now();
-            timespan_VUV_hits += std::chrono::duration_cast<std::chrono::duration<double>>(t_VUVHits_f-t_VUVHits_i);
             // apply additional factors QE etc.            
             for(int i = 0; i < num_VUV_geo; i++) {
                 if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::mesh_factor * parameters::vuv_tpb_transmission * parameters::opdet_tpb_frac) num_VUV++;   
@@ -140,18 +123,9 @@ int main() {
             int num_VIS = 0;
             if (parameters::include_reflected) {
             	// incident photons
-            	t_ReflHits_i = std::chrono::steady_clock::now();
-            	int num_VIS_geo = 0;
-                if (parameters::use_crowns_model) {
-                    double num_VIS_geo_double = hits_model.VisHits_crowns(number_photons, ScintPoint, OpDetPoint, op_channel_type);    // calculate hits with crowns model
-                    num_VIS_geo = std::round(num_VIS_geo_double);
-                } 
-                else {
-                    num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model
-                }         
-                t_ReflHits_f = std::chrono::steady_clock::now();			
-            	timespan_Refl_hits += std::chrono::duration_cast<std::chrono::duration<double>>(t_ReflHits_f-t_ReflHits_i);
-            	// apply additional factors QE etc.
+            	int num_VIS_geo = 0;                
+                num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model        
+                // apply additional factors QE etc.
             	for(int j = 0; j < num_VIS_geo; j++) {
                 	if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::mesh_factor * parameters::cathode_tpb_frac * (parameters::vis_tpb_transmission*parameters::opdet_tpb_frac + (1-parameters::opdet_tpb_frac))) num_VIS++;
                 }
@@ -168,11 +142,8 @@ int main() {
             	if(num_VUV > 0) {
             		// transport times
             		double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();  
-            		t_VUVTime_i = std::chrono::steady_clock::now();
             		std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, num_VUV);
-            		t_VUVTime_f = std::chrono::steady_clock::now();
-            		timespan_VUV_times += std::chrono::duration_cast<std::chrono::duration<double>>(t_VUVTime_f-t_VUVTime_i);
-
+            		
             		// total times
             		for(auto& x: transport_time_vuv) {
             			double total_time = (x*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
@@ -182,10 +153,7 @@ int main() {
             	// VIS
             	if (num_VIS > 0 && parameters::include_reflected) {
             		// transport times
-            		t_ReflTime_i = std::chrono::steady_clock::now();
             		std::vector<double> transport_time_vis = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS);
-            		t_ReflTime_f = std::chrono::steady_clock::now();
-            		timespan_Refl_times += std::chrono::duration_cast<std::chrono::duration<double>>(t_ReflTime_f-t_ReflTime_i);
             		// total times
             		for(auto& y: transport_time_vis) {
             			double total_time = (y*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
@@ -202,19 +170,8 @@ int main() {
 
 	} // end of event loop
 
-	t_all_f = std::chrono::steady_clock::now();
-    timespan_all = std::chrono::duration_cast<std::chrono::duration<double>>(t_all_f-t_all_i);
-
-    // display time taken
-    std::cout << "\nTotal data tree filling took " << timespan_all.count() << " seconds\n";
-    std::cout << "Direct light hits calculation took " << timespan_VUV_hits.count() << " seconds\n";
-    std::cout << "Reflected light hits calculation took " << timespan_Refl_hits.count() << " seconds\n";
-    std::cout << "Direct light timings calculation took " << timespan_VUV_times.count() << " seconds\n";
-    std::cout << "Reflected light timings calculation took " << timespan_Refl_times.count() << " seconds\n\n";
-
 	// write output root file
 	output_file.write_output_file();
 
 	std::cout << "Program finished." << std::endl;
-
 }

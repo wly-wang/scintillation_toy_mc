@@ -20,16 +20,14 @@ namespace parameters {
 	const double y_position_range[2] {-600,600};	// cm
 	const double z_position_range[2] {400,1000};	// cm
 
-	// semi_analytic hits
-	// set to false
-	const bool use_crowns_model = false;	// crowns model for visible hits, preliminary
+
+	// semi-analytic simulation options
+	// visible light
+	const bool include_reflected = true;
 
 	// timings
 	const bool include_timings = true;
 	const double timing_discretisation_step_size = 1.0;	// cm
-
-	// visible light
-	const bool include_reflected = true;
 
 
 	// photon detection system properties

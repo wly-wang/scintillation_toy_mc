@@ -26,19 +26,18 @@ semi_analytic_hits::semi_analytic_hits() {
   std::cout<<"Light simulation for DUNE Single Phase detector"<<std::endl;
 
   // initialise gaisser hillas functions for VUV Rayleigh scattering correction
-  std::cout<<"Loading Gaisser Hillas corrections for VUV semi-analytic model."<< std::endl;
-  double pars_ini[4] = {0,0,0,0};
-  for(int bin = 0; bin < 9; bin++) {
-    GH[bin] =  new TF1("GH",GaisserHillas,0.,2000,4);      
-    for(int j=0; j < 4; j++) {
-      pars_ini[j] = GH_RS60cm_SP[j][bin];		
+  // DUNE-SP
+  fReference_to_corner = sqrt(pow(fYactive_corner, 2) + pow(fZactive_corner, 2));
+  for (int bin = 0; bin < 9; bin ++) {
+    for (int j = 0; j < 4; j++) {
+      fGHVUVPars[j][bin] = GH_RS60cm_SP[j][bin];
     }
-    GH[bin]->SetParameters(pars_ini);
+  }
+  for (int i = 0; i < 2; i++) {
+    fVUVBorderCorr[i] = BORDER_RS60cm_SP[i];
   }
   
-
   // initialise pol5 functions for visible hits correction
-  std::cout<<"Loading corrections for visible semi-analytic model."<< std::endl;
   double pars_ini_vis[6] = {0,0,0,0,0,0};
   for (int bin = 0; bin < 9; bin++) {
     VIS_pol[bin] = new TF1 ("pol", "pol5", 0, 2000);
@@ -46,16 +45,6 @@ semi_analytic_hits::semi_analytic_hits() {
       pars_ini_vis[j] = VIS_RS60cm_SP[j][bin];
     }
     VIS_pol[bin]->SetParameters(pars_ini_vis);
-  }
-
-  // initialise pol7 functions for visible hits correction, crowns model
-  double pars_ini_vis_crowns[8] = {0,0,0,0,0,0,0,0};
-  for (int bin = 0; bin < 9; bin++) {
-    VIS_pol_crowns[bin] = new TF1 ("pol", "pol7", 0, 2000);
-    for (int j = 0; j < 8; j++){
-      pars_ini_vis_crowns[j] = VIS_RS60cm_SP_Crowns[j][bin];
-    }
-    VIS_pol_crowns[bin]->SetParameters(pars_ini_vis_crowns);
   }
 
   std::cout << std::endl;
@@ -106,7 +95,21 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
   // apply Gaisser-Hillas correction for Rayleigh scattering distance and angular dependence
   // offset angle bin
   int j = (theta/delta_angulo);
-  double hits_rec = gRandom->Poisson( GH[j]->Eval(distance)*hits_geo/cosine );
+  
+  // account for border effects in Gaisser-Hillas function
+  double z_to_corner = abs(ScintPoint[2] - fZactive_corner) - fZactive_corner;
+  double y_to_corner = abs(ScintPoint[1]) - fYactive_corner;
+  double distance_to_corner = sqrt(y_to_corner*y_to_corner + z_to_corner*z_to_corner);  // in the ph-cathode plane
+  
+  double pars_ini_[4] = {fGHVUVPars[0][j] + fVUVBorderCorr[0] * (distance_to_corner - fReference_to_corner),
+                         fGHVUVPars[1][j] + fVUVBorderCorr[1] * (distance_to_corner - fReference_to_corner),
+                         fGHVUVPars[2][j],
+                         fGHVUVPars[3][j]};
+  
+  double GH_correction = GaisserHillas(distance, pars_ini_);
+  
+  // apply correction
+  double hits_rec = gRandom->Poisson( GH_correction*hits_geo/cosine );
 
   // round to integer value, cannot have non-integer number of hits
   int hits_vuv = std::round(hits_rec);
@@ -144,9 +147,14 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
 
   // apply Gaisser-Hillas correction for Rayleigh scattering distance and angular dependence
   // offset angle bin
-  int j = (theta_cathode/delta_angulo);
-  double cathode_hits_rec = GH[j]->Eval(distance_cathode)*cathode_hits_geo/cosine_cathode;
-  
+  int j = (theta_cathode/delta_angulo);  
+  // correction
+  double pars_ini_[4] = {fGHVUVPars[0][j], fGHVUVPars[1][j], fGHVUVPars[2][j], fGHVUVPars[3][j]};
+  double GH_correction = GaisserHillas(distance_cathode, pars_ini_);
+
+  double cathode_hits_rec = GH_correction*cathode_hits_geo/cosine_cathode;
+
+
   // 2). calculate number of these hits which reach the optical channel from the hotspot via solid angle 
   
   // calculate hotspot location  
@@ -199,13 +207,15 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   double hits_rec = VIS_pol[k]->Eval(distance_vuv)*hits_geo/cosine_vis;
 
   // apply border correction
-  // interpolate in x for each y bin
-  std::vector<double> interp_vals = {0,0,0,0,0,0};
-  for (int i = 0; i < 6; i++){
+  // calculate radial distance from centre
+  double r_distance = sqrt( pow(ScintPoint[1] - y_foils, 2) + pow(ScintPoint[2] - z_foils, 2)); 
+  // interpolate in x for each r bin
+  std::vector<double> interp_vals = {0,0,0,0};
+  for (int i = 0; i < 4; i++){
     interp_vals[i] = interpolate(vDistances_x, VIS_RS60_SP_Borders[k][i], std::abs(ScintPoint[0]), false);
   }
-  // interpolate in y
-  double border_correction = interpolate(vDistances_y, interp_vals, std::abs(ScintPoint[1]), false);
+  // interpolate in r
+  double border_correction = interpolate(vDistances_r, interp_vals, r_distance, false);
   // apply correction
   double hits_rec_borders = border_correction * hits_rec / cosine_vis;
 
@@ -215,269 +225,15 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   return hits_vis;
 }
 
-// Visible hits calculation using updated crowns method
-int semi_analytic_hits::VisHits_crowns(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
-
-  gRandom->SetSeed(0);
-
-  // utilising concentric square rings corresponding to approximately 0-10, 10-20, etc. degrees on cathode plane to model number of hits geometrically
-  // GH corrections applied to account for effects of Rayleigh scattering for each concentric ring
-  // hits on optical detector calculated via solid angle from four points corresponding to middle top, bottom, left, right of ring
-  // corrections applied to account for reflections/absorption from borders 
-
-  // 1). calculate total number of hits of VUV photons on reflective foils via solid angle + Gaisser-Hillas corrections:
-  
-  // determine boundaries of cathode plane
-  double top_boundary = y_foils + y_dimension_foils/2;
-  double bottom_boundary = y_foils - y_dimension_foils/2;
-  double left_boundary = z_foils + z_dimension_foils/2;
-  double right_boundary = z_foils - z_dimension_foils/2;
-
-
-  // determine square dimensions corresponding to each angular bin, calculating solid angle of each square
-  // containers to store dimensions and positions of each square
-  // full size of square
-  double size_cathode_squares[9];
-  // centre and coordinates one boundary walls taken into account
-  TVector3 square_centres[9];
-  double top_cathode_squares[9];
-  double bottom_cathode_squares[9];
-  double left_cathode_squares[9];
-  double right_cathode_squares[9];  
-
-  // solid angle of each square  
-  double solid_angle_cathode_squares[9];
-  
-  // distance to cathode from scintillation point
-  double distance_cathode = std::abs(plane_depth - ScintPoint[0]);
-  
-  // loop over angle bins determining dimensions, coordinates and solid angle of each square
-  for (int bin = 0; bin < 9; bin++) {
-
-    // angle
-    double theta_boundary;
-    if (bin == 8) theta_boundary = (bin+1)*10 - 0.01;  // special case for 80-90 degree bin, take maximum as 89.99 (90 impossible)
-    else theta_boundary = (bin+1) * 10;
-    
-    // size of square
-    size_cathode_squares[bin] = distance_cathode * tan(theta_boundary * (pi/180));
-    
-    // dimensions of squares checking against boundaries:
-    // top
-    if (ScintPoint[1] + size_cathode_squares[bin] < top_boundary) top_cathode_squares[bin] = ScintPoint[1] + size_cathode_squares[bin];
-    else top_cathode_squares[bin] = top_boundary;
-    // bottom
-    if (ScintPoint[1] - size_cathode_squares[bin] > bottom_boundary) bottom_cathode_squares[bin] = ScintPoint[1] - size_cathode_squares[bin];
-    else bottom_cathode_squares[bin] = bottom_boundary;
-    // left
-    if (ScintPoint[2] + size_cathode_squares[bin] < left_boundary) left_cathode_squares[bin] = ScintPoint[2] + size_cathode_squares[bin];
-    else left_cathode_squares[bin] = left_boundary;
-    // right
-    if (ScintPoint[2] - size_cathode_squares[bin] > right_boundary) right_cathode_squares[bin] = ScintPoint[2] - size_cathode_squares[bin];
-    else right_cathode_squares[bin] = right_boundary;
-
-    // set square geometry struct for solid angle function
-    acc square; 
-    square.ax = plane_depth; square.ay = (top_cathode_squares[bin] + bottom_cathode_squares[bin])/2; square.az = (right_cathode_squares[bin] + left_cathode_squares[bin])/2;  // centre coordinates of square
-    square.h = std::abs(left_cathode_squares[bin] - right_cathode_squares[bin]); square.w = std::abs(top_cathode_squares[bin] - bottom_cathode_squares[bin]); // width and height of square
-
-    // get scintillation point coordinates relative to centre of square
-    TVector3 square_centre(square.ax, square.ay, square.az); square_centres[bin] = square_centre;
-    TVector3 ScintPoint_rel = square_centre - ScintPoint;  
-
-    // calculate solid angle of square
-    solid_angle_cathode_squares[bin] = solid(square, ScintPoint_rel);
-
-    // debugging
-    //cout << "Square solid angle [" << bin*10 << ", " << (bin+1)*10 << "]: " << solid_angle_cathode_squares[bin] << endl;
-  }
-
-
-  // use solid angle squares to determine solid angle of angular bin ring
-  // calculate number of hits on each ring applying appropriate GH correction
-
-  // hits on each ring
-  double cathode_hits_rec[9];
-
-  // find maximum distance to boundary wall from scintpoint in y,z directions 
-  double distances_to_boundary[] = {abs(top_boundary - ScintPoint[1]), abs(bottom_boundary - ScintPoint[1]), abs(left_boundary - ScintPoint[2]), abs(right_boundary - ScintPoint[2])};
-  double max_distance_to_boundary = *(std::max_element(distances_to_boundary, distances_to_boundary+4));
-  
-  // loop over angular bins
-  for (int bin = 0; bin < 9; bin ++) {
-    
-    // solid angle of ring for this bin + distance for GH correction
-    double bin_solid_angle;
-    double bin_distance;
-    // centre special case, use full square solid angle & distance to hotspot directly infront of scintillation point
-    if (bin == 0){
-      bin_solid_angle = solid_angle_cathode_squares[bin];
-      bin_distance = distance_cathode;
-    }
-    else {
-      // solid angle is difference between this square and previous square
-      bin_solid_angle = solid_angle_cathode_squares[bin] - solid_angle_cathode_squares[bin - 1];
-      // distance to the middle of this bin, checking against boundary of cathode     
-      double distance_square;
-      if (size_cathode_squares[bin] > max_distance_to_boundary) distance_square = size_cathode_squares[bin - 1] + ((max_distance_to_boundary - size_cathode_squares[bin - 1]) / 2);
-      //if (size_cathode_squares[bin] > max_distance_to_boundary) distance_square = size_cathode_squares[bin - 1];
-      else distance_square = size_cathode_squares[bin - 1] + ((size_cathode_squares[bin] - size_cathode_squares[bin - 1]) / 2);
-      bin_distance = sqrt(pow(distance_cathode, 2) + pow(distance_square, 2));
-    }
-
-    // debugging
-    //cout << "Bin: " << bin << "   bin solid angle = " << bin_solid_angle << "   bin distance = " << bin_distance << "   size square: " << size_cathode_squares[bin]; 
-
-    // calculate hits on this ring via geometric acceptance
-    double cathode_hits_geo = exp(-1.*bin_distance/L_abs) * (bin_solid_angle / (4.*pi)) * Nphotons_created;
-    
-    // apply Gaisser-Hillas correction for Rayleigh scattering
-    // offset angle bin
-    double theta_boundary = 10 + bin*10;
-    int j = (theta_boundary-5) / delta_angulo;  // minus 5 degrees - middle of bin
-    double cosine_cathode = cos((theta_boundary - 5) * (pi/180));
-    // corrected hits for this bin
-    cathode_hits_rec[bin] = (GH[j]->Eval(bin_distance))*cathode_hits_geo/cosine_cathode;  
-
-    // debugging
-    //cout << "   cathode hits = " << cathode_hits_rec[bin] << endl;
-  }
-
-
-  // 2). calculate number of hit from each ring which reach the optical detector via solid angle 
-
-  // set Arapuca geometry struct for solid angle function
-  acc detPoint; 
-  detPoint.ax = OpDetPoint[0]; detPoint.ay = OpDetPoint[1]; detPoint.az = OpDetPoint[2];  // centre coordinates of optical detector
-  detPoint.w = y_dimension_detector; detPoint.h = z_dimension_detector;                   // width and height in cm of arapuca active window
-
-  // calculate hits from each ring via geometric acceptance 
-  double hits_geo[9];
-  // loop over rings
-  for (int bin = 0; bin < 9; bin++) {
-        
-    // first bin, hits from centre of first square
-    if (bin == 0) {
-      double solid_angle_detector = 0;
-      // rectangle
-      if (optical_detector_type == 1) {
-        TVector3 emission_relative = square_centres[0] - OpDetPoint;
-        solid_angle_detector = solid(detPoint, emission_relative);
-      }
-      // disk
-      else if (optical_detector_type == 0) {
-        // offset in z-y plane
-        double d = sqrt(pow(square_centres[0][1] - OpDetPoint[1],2) + pow(square_centres[0][2] - OpDetPoint[2],2));
-        // drift distance (in x)
-        double h =  sqrt(pow(square_centres[0][0] - OpDetPoint[0],2));
-        // Solid angle of a disk
-        solid_angle_detector = Disk_SolidAngle(d, h, radius);
-      }
-      else {
-        std::cout << "Erorr: Invalid optical detector type." << std::endl;
-        exit(1);
-      }
-      double hits_geo_ring = (solid_angle_detector / (2*pi)) * cathode_hits_rec[bin];
-      // store
-      hits_geo[bin] = hits_geo_ring;
-    }
-    // for remaining bins, take four points around ring weighted by width of ring in each direction to account for rings cut-off by cathode boundaries
-    else {      
-      
-      // widths of ring in each direction acting as weighting factor for solid angle hits from each spot
-      double widths[4];
-      widths[0] = abs(top_cathode_squares[bin] - top_cathode_squares[bin - 1]);       // top width
-      widths[1] = abs(bottom_cathode_squares[bin] - bottom_cathode_squares[bin - 1]); // bottom width
-      widths[2] = abs(left_cathode_squares[bin] - left_cathode_squares[bin - 1]);     // left width
-      widths[3] = abs(right_cathode_squares[bin] - right_cathode_squares[bin - 1]);   // right width
-      // sum for normalisation of weighting factor
-      double width_sum = widths[0] + widths[1] + widths[2] + widths[3];
-
-      // coordinates of points on ring
-      TVector3 spot[4];
-      spot[0] = square_centres[bin]; spot[0][1] = top_cathode_squares[bin] - (widths[0] / 2);
-      spot[1] = square_centres[bin]; spot[1][1] = bottom_cathode_squares[bin] + (widths[1] / 2);
-      spot[2] = square_centres[bin]; spot[2][2] = left_cathode_squares[bin] - (widths[2] / 2);
-      spot[3] = square_centres[bin]; spot[3][2] = right_cathode_squares[bin] + (widths[3] / 2);
-
-      // calculate hits from each spot via geometric acceptance adding to total from ring
-      hits_geo[bin] = 0;
-      // loop over the fours spots
-      for (int i = 0; i < 4; i++) {
-        // solid angle from spot
-        double solid_angle_detector = 0;
-        // recantular
-        if (optical_detector_type == 1) {
-          TVector3 emission_relative = spot[i] - OpDetPoint;
-          double solid_angle_detector = solid(detPoint, emission_relative);
-        }
-        // disk
-        else if (optical_detector_type == 0) {
-          // offset in z-y plane
-          double d = sqrt(pow(spot[i][1] - OpDetPoint[1],2) + pow(spot[i][2] - OpDetPoint[2],2));
-          // drift distance (in x)
-          double h =  sqrt(pow(spot[i][0] - OpDetPoint[0],2));
-          // Solid angle of a disk
-          solid_angle_detector = Disk_SolidAngle(d, h, radius);
-        }
-        else {
-           std::cout << "Erorr: Invalid optical detector type." << std::endl;
-           exit(1);
-        }
-      
-        // store hits from spot applying weighting factor
-        if (width_sum == 0) hits_geo[bin] += 0;    // special case to prevent issues in case of zero width ring (i.e. previous ring already up to boundary)     
-        else hits_geo[bin] += ((solid_angle_detector / (2*pi)) * cathode_hits_rec[bin]) * widths[i]/width_sum;  // hits multiplied by weighting factor
-
-      }
-    }
-  }
-  
-  // sum total hits
-  double hits_geo_total = 0; 
-  for (int bin = 0; bin < 9; bin++) {
-    hits_geo_total += hits_geo[bin];
-  }
-  
-  // apply corrections to analytic model:
-  TVector3 hotspot(plane_depth, ScintPoint[1], ScintPoint[2]);
-  double distance_vuv = sqrt(pow(ScintPoint[0] - hotspot[0],2) + pow(ScintPoint[1] - hotspot[1],2) + pow(ScintPoint[2] - hotspot[2],2));
-  double distance_vis = sqrt(pow(hotspot[0] - OpDetPoint[0],2) + pow(hotspot[1] - OpDetPoint[1],2) + pow(hotspot[2] - OpDetPoint[2],2));
-  double distance_fullpath = distance_vuv + distance_vis;
-  double cosine_vis = sqrt(pow(hotspot[0] - OpDetPoint[0],2)) / distance_vis;
-  double theta_vis = acos(cosine_vis)*180./pi;
-  int k = (theta_vis/delta_angle);
-
-  // geometric correction
-  double hits_rec = VIS_pol_crowns[k]->Eval(distance_vuv)*hits_geo_total/cosine_vis;
-
-  // border effect correction
-  // interpolate in x for each y bin
-  std::vector<double> interp_vals = {0,0,0,0,0,0};
-  for (int i = 0; i < 6; i++){
-    interp_vals[i] = interpolate(vDistances_x, VIS_RS60_SP_Crowns_Borders[k][i], std::abs(ScintPoint[0]), false);
-  }
-  // interpolate in y
-  double border_correction = interpolate(vDistances_y, interp_vals, std::abs(ScintPoint[1]), false);
- 
-  // apply correction
-  double hits_rec_borders = border_correction * hits_rec / cosine_vis; 
-  
-  // round final result
-  int hits_vis = std::round(hits_rec_borders);
-  
-  return hits_vis;
-}
-
 
 // gaisser-hillas function definition
-Double_t semi_analytic_hits::GaisserHillas(double *x,double *par) {
+Double_t semi_analytic_hits::GaisserHillas(double x,double *par) {
   //This is the Gaisser-Hillas function
   Double_t X_mu_0=par[3];
   Double_t Normalization=par[0];
   Double_t Diff=par[1]-X_mu_0;
-  Double_t Term=pow((*x-X_mu_0)/Diff,Diff/par[2]);
-  Double_t Exponential=TMath::Exp((par[1]-*x)/par[2]);
+  Double_t Term=pow((x-X_mu_0)/Diff,Diff/par[2]);
+  Double_t Exponential=TMath::Exp((par[1]-x)/par[2]);
   
   return ( Normalization*Term*Exponential);
 }
