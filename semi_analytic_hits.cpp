@@ -30,11 +30,11 @@ semi_analytic_hits::semi_analytic_hits() {
   fReference_to_corner = sqrt(pow(fYactive_corner, 2) + pow(fZactive_corner, 2));
   for (int bin = 0; bin < 9; bin ++) {
     for (int j = 0; j < 4; j++) {
-      fGHVUVPars[j][bin] = GH_RS60cm_SP[j][bin];
+      fGHVUVPars[j][bin] = GH_SP[j][bin];
     }
   }
   for (int i = 0; i < 2; i++) {
-    fVUVBorderCorr[i] = BORDER_RS60cm_SP[i];
+    fVUVBorderCorr[i] = BORDER_SP[i];
   }
   
   // initialise pol5 functions for visible hits correction
@@ -42,7 +42,7 @@ semi_analytic_hits::semi_analytic_hits() {
   for (int bin = 0; bin < 9; bin++) {
     VIS_pol[bin] = new TF1 ("pol", "pol5", 0, 2000);
     for (int j = 0; j < 6; j++){
-      pars_ini_vis[j] = VIS_RS60cm_SP[j][bin];
+      pars_ini_vis[j] = VIS_SP[j][bin];
     }
     VIS_pol[bin]->SetParameters(pars_ini_vis);
   }
@@ -53,8 +53,7 @@ semi_analytic_hits::semi_analytic_hits() {
 
 // VUV hits calculation
 int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
-  gRandom->SetSeed(0);
-
+  
   // distance and angle between ScintPoint and OpDetPoint
   double distance = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2) + pow(ScintPoint[1] - OpDetPoint[1],2) + pow(ScintPoint[2] - OpDetPoint[2],2));
   double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance;
@@ -119,8 +118,7 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
 
 // Visible hits calculation
 int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
-  gRandom->SetSeed(0);
-
+  
   // 1). calculate total number of hits of VUV photons on reflective foils via solid angle + Gaisser-Hillas corrections:
 
   // set cathode plane struct for solid angle function
@@ -211,8 +209,8 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   double r_distance = sqrt( pow(ScintPoint[1] - y_foils, 2) + pow(ScintPoint[2] - z_foils, 2)); 
   // interpolate in x for each r bin
   std::vector<double> interp_vals = {0,0,0,0};
-  for (int i = 0; i < 4; i++){
-    interp_vals[i] = interpolate(vDistances_x, VIS_RS60_SP_Borders[k][i], std::abs(ScintPoint[0]), false);
+  for (unsigned int i = 0; i < vDistances_r.size(); i++){
+    interp_vals[i] = interpolate(vDistances_x, VIS_SP_Borders[k][i], std::abs(ScintPoint[0]), false);
   }
   // interpolate in r
   double border_correction = interpolate(vDistances_r, interp_vals, r_distance, false);

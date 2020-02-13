@@ -3,21 +3,21 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "testing.root";
+	const char *output_file_name = "LY_RS90cm_100%Both.root";
 
 	// events to generate
 	// number
-	const int number_events =  1000;
+	const int number_events =  50000;
 	
 	// type
 
 	// energy
-	const double energy = 100;	// MeV
+	const double energy = 25;	// MeV
 	
 	// position
 	// random position ranges
 	const double x_position_range[2] {10,350};	// cm
-	const double y_position_range[2] {-600,600};	// cm
+	const double y_position_range[2] {-500,500};	// cm
 	const double z_position_range[2] {400,1000};	// cm
 
 
@@ -26,16 +26,20 @@ namespace parameters {
 	const bool include_reflected = true;
 
 	// timings
-	const bool include_timings = true;
+	const bool include_timings = false;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 
 	// photon detection system properties
 	const double quantum_efficiency = 0.035;				// arapuca QE
-	const double mesh_factor = 0.7;	
-	const double vuv_tpb_transmission = 0.5;
-	const double vis_tpb_transmission = 0.6; 
-	const double opdet_tpb_frac = 1.0; 
+	const double wireplane_factor = 0.7;	
+	const double vuv_transmission = 0.5;	// efficiency of any detector to VUV photons (128 or 174 nm)
+	const double vis_transmission = 0.7; 	// efficiency of any detector to Visible photons
+	
+	const double opdet_fraction_vuv_only = 0.0;
+	const double opdet_fraction_visible_only = 0.0; 
+	const double opdet_fraction_both = 1.0 - opdet_fraction_vuv_only - opdet_fraction_visible_only;
+	
 	const double cathode_tpb_frac = 0.8;		
 
 
