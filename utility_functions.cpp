@@ -1,8 +1,15 @@
 // implementation of utility functions class
 
 #include "utility_functions.h"
-
 #include <cmath>
+#include "TMath.h" //chrisflynn
+#include "TVector3.h" //chriflynn
+#include "TF1.h" //chriflynn
+#include "TRandom.h" //chriflynn
+#include <chrono> //chriflynn
+#include <iostream> //chriflynn
+#include "TSpline.h" //chriflynn
+#include "TFile.h" //chriflynn
 
 // destructor
 utility_functions::~utility_functions(){
@@ -74,3 +81,71 @@ void utility_functions::initalise_scintillation_function(const double t_singlet,
     if(particle_type == 0) fScintillation_function->FixParameter(2, 0); 	// electron  
     if(particle_type == 1) fScintillation_function->FixParameter(2, 1);		// alpha
 }
+
+//Beta Decay Function ///chrisflynn
+double utility_functions::SpectrumFunction(double *x, double *par)
+{
+       double KE = *x;
+       double Q = par[0];
+       double MassE = 0.510998910; //mass electron - Mev/c^2
+
+       double N = std::sqrt(pow(KE,2) + 2*KE*MassE) * std::pow((Q-KE),2) * (KE+MassE);
+
+       return N;
+}
+
+//Supernova neutrino energy spectrum ///chrisflynn
+//Spectrum energy comes froma 1kpc galactic supernova
+double utility_functions::fsn(double *x, double *par)
+{
+       double E = *x;
+       double Eav = par[0];
+
+       double f_nu = std::pow(E,3)*std::exp(-4*E/Eav);
+
+       return f_nu;
+}
+
+//Solar neutrino energy spectrum ////chrisflynn
+double utility_functions::fso(double *x, double *par)
+{
+       double E = *x;
+       double Eav = par[0];
+
+       TFile *f = new TFile("solar_neu_energy_spline.root");
+       TSpline3 *spline = (TSpline3*)f->Get("Spline3");
+       double f_s_neu = spline->Eval(E);
+       f->Close();
+
+       return f_s_neu;
+}
+
+
+//hep spectrum ///chrisflynn
+double utility_functions::fhep(double *x, double *par)
+{
+      double E = *x;
+      double Eav = par[0];
+
+      TFile *f1 = new TFile("hep_neu_energy_spline.root");
+      TSpline3 *spline = (TSpline3*)f1->Get("Spline3");
+      double f_hep_neu = spline->Eval(E);
+      f1->Close();
+
+      return f_hep_neu;
+}
+
+//Radon-22 decay energy spectrum (Gaussian about the alpha decay energy) //chrisflynn
+double utility_functions::Rn_function(double *x, double *par)
+{
+      double E = *x;
+      double Q_Rn = par[0];
+
+      double sigma = 0.01;
+      //double sigma = (E-Q_Rn) / std::sgrt(1.3863); //1.3863 = ln(4)
+      double sigma_sq = sigma * sigma;
+      double gauss = 1/(sigma*std::sqrt(2*3.1416)) * std::exp((-1*std::pow((E-Q_Rn),2))/(2*sigma_sq));
+      
+      return gauss;
+      }
+      
