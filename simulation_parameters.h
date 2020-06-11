@@ -3,13 +3,13 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "event_file_test_merge_Po210.root";
+	const char *output_file_name = "../data/event_10000_15MeV_310_350_90cm.root";
 
         ///-------------------------------------
         //--------WHAT events to generate?------
         ///-------------------------------------
-        bool fixed_energy = false; //If gamma activity this will be set to true in the analyze_light.cpp
-	double fixedE = -1.0; //Set to -1.0 to check if fixed value has been correctly assigned
+        bool fixed_energy = true; //If gamma activity this will be set to true in the analyze_light.cpp
+	double fixedE = 15.0; //Set to -1.0 to check if fixed value has been correctly assigned
         bool supernova = false;
         bool solar = false;
         bool gen_hep = false;
@@ -33,7 +33,7 @@ namespace parameters {
 	bool gen_Rn222 = false;
 	bool gen_Po218 = false;
 	bool gen_Po214 = false;
-	bool gen_Po210 = true;
+	bool gen_Po210 = false;
         bool gen_Bi214 = false;
 
         ///-------------------------------------
@@ -119,7 +119,7 @@ namespace parameters {
         ////----Number of Events------------------
         /////-------------------------------------
         // Fixed energy (electron like) events:
-        const int max_events_FE = 1;
+        const int max_events_FE = 10000;
 	//const int number_events = max_events_FE;
 	//const double energy = 25;     //MeV
 
@@ -155,15 +155,14 @@ namespace parameters {
         const int max_events_Co60G2 = max_events_Co60B;
         const int max_events_Ar42 = 1.283768e-7 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window;//1.41e-3 Bq*cm^-3 from mcc11 simulation
         const int max_events_K42 = max_events_Ar42 * 0.819;
-        const int max_events_40KB = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.8928;//89.28% ratio for beta decay
+	const int max_events_40KB = 10000000;
+        //const int max_events_40KB = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.8928;//89.28% ratio for beta decay
         const int max_events_40KG = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.1072;//10.72% ratio for gamma decay
         const int max_events_Kr85B1 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.785;//near 100% of Kr82 would have beta decay
         const int max_events_Kr85B2 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.14;
         const int max_events_Kr85G1 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.785 * 0.752;
         const int max_events_Kr85G2 = max_events_Kr85B2;
         const int max_events_hep = 100;
-
-
 
 
 

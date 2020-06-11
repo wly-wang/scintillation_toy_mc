@@ -80,7 +80,7 @@ int main() {
         int scint_yield;
         string particle;
 
-// GAMMA backgrounds
+        // GAMMA backgrounds
 
         if(parameters::fixed_energy == true) {
            max_events = parameters::max_events_FE;
@@ -233,15 +233,15 @@ int main() {
            cout << "\nGenerating " << max_events << ", Po214 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
 
-	///////----------INCLUDED THIS TO KEEP CONSISTENT BETWEEN VERSIONS, can delete one-------////////
+	///////----------INCLUDED THIS max_events variable TO KEEP CONSISTENT BETWEEN VERSIONS, can delete one-------////////
 	//parameters::number_events = max_events;
 
 	std::cout << "Loading Photon Detector positions..." << std::endl;
-    std::ifstream detector_positions_file;
-    detector_positions_file.open("optical_detectors_dune1x2x6.txt");
-    if(detector_positions_file.is_open()) std::cout << "File opened successfully" << std::endl;
-    else {std::cout << "File not found." << std::endl; exit(1);}
-    while(!detector_positions_file.eof()) {
+        std::ifstream detector_positions_file;
+        detector_positions_file.open("optical_detectors_dune1x2x6.txt");
+        if(detector_positions_file.is_open()) std::cout << "File opened successfully" << std::endl;
+        else {std::cout << "File not found." << std::endl; exit(1);}
+        while(!detector_positions_file.eof()) {
         int num_opdet, type_opdet; double x_opdet, y_opdet, z_opdet;
         if(detector_positions_file >> num_opdet >> x_opdet >> y_opdet >> z_opdet >> type_opdet) {
             std::vector<int> type({num_opdet, type_opdet});
@@ -323,10 +323,11 @@ int main() {
            position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
         }
 
-
-        //position_list[event][0] = gRandom->Uniform(parameters::x_position_range[0],parameters::x_position_range[1]);
-        //position_list[event][1] = gRandom->Uniform(parameters::y_position_range[0],parameters::y_position_range[1]);
-        //position_list[event][2] = gRandom->Uniform(parameters::z_position_range[0],parameters::z_position_range[1]);
+	//---------SET THESE FOR FIXED POSITIONS----------//
+        position_list[event][0] = gRandom->Uniform(310.0,parameters::entire_x_position_range[1]);
+        //position_list[event][0] = 5.0; //Fixed x position
+        //position_list[event][1] = 0.0; //Fixed y position
+        //position_list[event][2] = 200.0; //Fixed z position
 
         // add event properties to output file
         output_file.add_event(event, energy_list[event], position_list[event]);
