@@ -3,11 +3,11 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "LY_RS90cm_100%Both.root";
+	const char *output_file_name = "testing.root";
 
 	// events to generate
 	// number
-	const int number_events =  50000;
+	const int number_events =  5000;
 	
 	// type
 
@@ -26,7 +26,7 @@ namespace parameters {
 	const bool include_reflected = true;
 
 	// timings
-	const bool include_timings = false;
+	const bool include_timings = true;
 	const double timing_discretisation_step_size = 1.0;	// cm
 
 
