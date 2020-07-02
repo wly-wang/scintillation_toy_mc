@@ -474,8 +474,12 @@ int main() {
             	// VUV            	
             	if(num_VUV > 0) {
             		// transport times
-            		double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();  
-            		std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, num_VUV);
+            		double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
+            		double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance_to_pmt;
+  					double theta = acos(cosine)*180./3.14159;
+  					int angle_bin = theta/45;	// 45 deg bins	  
+            		
+            		std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
             		
             		// total times
             		for(auto& x: transport_time_vuv) {

@@ -12,23 +12,28 @@
 using namespace std;
 
 // constructor
-time_parameterisation::time_parameterisation(const double size): step_size{size} {	
+time_parameterisation::time_parameterisation(const double &size): step_size{size} {	
 	
     // create vector of empty TF1s that will be replaces with the parameterisations that are generated as they are required
     // default TF1() constructor gives function with 0 dimensions, can then check numDim to qucikly see if a parameterisation has been generated  
     int num_params = (d_max - 25) / step_size;  // for d < 25cm, no parameterisaton, a delta function is used instead	
     vector<TF1> VUV_timing_temp(num_params,TF1());
-	VUV_timing = VUV_timing_temp;
+	// insert empty TF1 vectors, for each angular bin
+    for (int i = 0; i < timing_vuv_angular_bins; i++) {
+        VUV_timing.push_back(VUV_timing_temp);    
+    }   
     
     // initialise vectors to contain range parameterisations sampled to in each case
     // when using TF1->GetRandom(xmin,xmax), must be in same range otherwise sampling is regenerated, this is the slow part!
     vector<double> VUV_empty(num_params, 0);
-    VUV_max = VUV_empty;
-    VUV_min = VUV_empty;
+    for (int i = 0; i < timing_vuv_angular_bins; i++) {
+        VUV_max.push_back(VUV_empty);
+        VUV_min.push_back(VUV_empty);
+    }
 }
 
 // parameterisation generation function
-void time_parameterisation::generateparam(int index) {
+void time_parameterisation::generateparam(const int &index, const int &angle_bin) {
     gRandom->SetSeed(0);
 
     // get distance 
@@ -46,7 +51,7 @@ void time_parameterisation::generateparam(int index) {
       
     // Defining the model function(s) describing the photon transportation timing vs distance 
     // Getting the landau parameters from the time parametrization
-    double* pars_landau = interpolate(vDistances_all, vMpv, vWidth, vNorm_over_entries, distance_in_cm, true);
+    double* pars_landau = interpolate(vDistances_landau, vMpv_landau[angle_bin], vWidth_landau[angle_bin], vNorm_landau[angle_bin], distance_in_cm, true);
     // Deciding which time model to use (depends on the distance)
     // defining useful times for the VUV arrival time shapes
     if(distance_in_cm >= inflexion_point_distance) {
@@ -61,8 +66,8 @@ void time_parameterisation::generateparam(int index) {
         // Exponential parameters
         double pars_expo[2];   
         // Getting the exponential parameters from the time parametrization
-        pars_expo[1] = interpolate(vDistances, vSlope, distance_in_cm, true);
-        pars_expo[0] = Expo_over_Landau_norm[1][0] + Expo_over_Landau_norm[1][1]*distance_in_cm;
+        pars_expo[1] = interpolate(vDistances_exp, vSlope_exp[angle_bin], distance_in_cm, true);
+        pars_expo[0] = interpolate(vDistances_exp, vNorm_exp[angle_bin], distance_in_cm, true);
         pars_expo[0] *= pars_landau[2];
         pars_expo[0] = log(pars_expo[0]);
         // this is to find the intersection point between the two functions:
@@ -85,7 +90,7 @@ void time_parameterisation::generateparam(int index) {
     const int nq_max=1;
     double xq_max[nq_max];
     double yq_max[nq_max];    
-    xq_max[0] = 0.99;   // include 99%, 95% cuts out a lot of tail and time difference is negligible extending this
+    xq_max[0] = 0.995;   // include 99.5% of tail
     fVUVTiming.GetQuantiles(nq_max,yq_max,xq_max);
     double max = yq_max[0];
     // min
@@ -104,16 +109,15 @@ void time_parameterisation::generateparam(int index) {
     // all subsequent calls check if it has been generated previously and are ~100+ times quicker
     double arrival_time = fVUVTiming.GetRandom(min,max);
     // add timing to the vector of timings and range to vectors of ranges
-    VUV_timing[index] = fVUVTiming;
-    VUV_max[index] = max;
-    VUV_min[index] = min;
+    VUV_timing[angle_bin][index] = fVUVTiming;
+    VUV_max[angle_bin][index] = max;
+    VUV_min[angle_bin][index] = min;
     
 }
 
 // VUV arrival times calculation function
-vector<double> time_parameterisation::getVUVTime(double distance, int number_photons) {
-    gRandom->SetSeed(0);
-
+vector<double> time_parameterisation::getVUVTime(const double &distance, const int &angle_bin, const int &number_photons) {
+    
     // pre-allocate memory
     std::vector<double> arrival_time_distrb;
     arrival_time_distrb.clear();
@@ -132,108 +136,97 @@ vector<double> time_parameterisation::getVUVTime(double distance, int number_pho
         // determine nearest parameterisation in discretisation
         int index = std::round((distance - 25) / step_size);
         // check whether required parameterisation has been generated, generating if not
-        if (VUV_timing[index].GetNdim() == 0) {
-            generateparam(index);
+        if (VUV_timing[angle_bin][index].GetNdim() == 0) {
+            generateparam(index, angle_bin);
         }
         // randomly sample parameterisation for each photon
         for (int i = 0; i < number_photons; i++){
-            arrival_time_distrb.push_back(VUV_timing[index].GetRandom(VUV_min[index],VUV_max[index]));
+            arrival_time_distrb.push_back(VUV_timing[angle_bin][index].GetRandom(VUV_min[angle_bin][index],VUV_max[angle_bin][index]));
         }  
     }
     return arrival_time_distrb;
 }
 
 // vis arrival times calculation function
-vector<double> time_parameterisation::getVisTime(TVector3 ScintPoint, TVector3 OpDetPoint, int number_photons) {
+vector<double> time_parameterisation::getVisTime(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons) {
+    
     // *************************************************************************************************
     // Calculation of earliest arrival times and corresponding unsmeared distribution
     // *************************************************************************************************
 
-    // calculate point of reflection for shortest path accounting for difference in refractive indicies    
-    // vectors for storing results
-    TVector3 image(0,0,0);
-    TVector3 bounce_point(0,0,0);
-    
-    // distance to wall    
-    TVector3 v_to_wall(cathode_plane_depth-ScintPoint[0],0,0);
-
-    // hotspot is point on wall where TPB is activated most intensely by the scintillation
-    TVector3 hotspot(cathode_plane_depth,ScintPoint[1],ScintPoint[2]);
-    
-    // define "image" by reflecting over plane
-    image = hotspot + v_to_wall*(n_LAr_vis/n_LAr_VUV);
-    
-    // find point of intersection with plane cathode plane of ray from the optical detector to the image
-    TVector3 tempvec = (OpDetPoint-image).Unit();
-    double tempnorm= ((image-hotspot).Mag())/std::abs(tempvec[0]);
-    bounce_point = image + tempvec*tempnorm;
-
+    // bounce_point is point on wall where TPB is activated most intensely by the scintillation
+    TVector3 bounce_point(cathode_plane_depth,ScintPoint[1],ScintPoint[2]);
+   
     // calculate distance travelled by VUV light and by vis light
     double VUVdist = (bounce_point-ScintPoint).Mag();
     double Visdist = (OpDetPoint-bounce_point).Mag();
 
     // calculate times taken by each part
-    vector<double> VUVTimes  = getVUVTime(VUVdist, number_photons);
-    vector<double> ReflTimes(number_photons,0);
-    double v;
-    for (int i=0; i<number_photons; i++) {
-        ReflTimes[i] = Visdist/vis_vmean;
-    }
+    int angle_bin_vuv = 0;   // on-axis by definition
+    vector<double> VUVTimes  = getVUVTime(VUVdist, angle_bin_vuv, number_photons);
+    vector<double> ReflTimes(number_photons, Visdist/vis_vmean);
 
     // sum parts to get total transport times times                    
-    vector<double> transport_time_vis(number_photons,0);
+    vector<double> transport_time_vis(number_photons, 0.0);
     for (int i=0; i<number_photons; i++) {
         transport_time_vis[i] = VUVTimes[i] + ReflTimes[i];
     }
-
+    
 
     // *************************************************************************************************
     // Smearing of arrival time distribution
     // *************************************************************************************************
-   
-    gRandom->SetSeed(0);
-
+  
     // calculate fastest time possible
     // vis part
     double vis_time = Visdist/vis_vmean;
     // vuv part
     double vuv_time;
     if (VUVdist < 25){
-        vuv_time = VUVdist/vuv_vgroup_mean;
+        vuv_time = VUVdist/vuv_vgroup_max;
     }
     else {
         // find index of required parameterisation
         int index = std::round((VUVdist - 25) / step_size);
         // find shortest time
-        vuv_time = VUV_min[index];
+        vuv_time = getVUVmin(index, angle_bin_vuv);
     }
     // sum
     double fastest_time = vis_time + vuv_time;
 
-    // calculate angle alpha between scintillation point and reflection point
-    double cosine_alpha = sqrt(pow(ScintPoint[0] - bounce_point[0],2)) / VUVdist;
-    double alpha = acos(cosine_alpha)*180./pi;
-
+    // calculate angle theta between reflection point and optical detector
+    double cosine_theta = std::abs(OpDetPoint[0] - bounce_point[0]) / Visdist;
+    double theta = acos(cosine_theta)*180./pi;
+    
     // determine smearing parameters using interpolation of generated points: 
     //  1). tau = exponential smearing factor, varies with distance and angle
     //  2). cutoff = largest smeared time allowed, preventing excessively large times caused by exponential
     // distance to cathode
     double distance_cathode_plane = std::abs(cathode_plane_depth - ScintPoint[0]);
     // angular bin
-    int alpha_bin = alpha / 10;
-    if (alpha_bin >= tau_bins.size()) {
-        alpha_bin = tau_bins.size() - 1;      // default to the largest available bin if alpha larger than parameterised region found; i.e. last bin effectively [last bin start value, 90] deg bin
-    }
+    int theta_bin = theta / timing_vis_angular_bin_size;
+    // radial distance from centre of TPC (y,z plane)
+    double R = sqrt( pow(ScintPoint[1],2) + pow(ScintPoint[2] - z_foils, 2) );
 
     // cut-off and tau
-    double cutoff = interpolate( refl_vdistances, cut_off_bins[alpha_bin], distance_cathode_plane, true );
-    double tau = interpolate( refl_vdistances, tau_bins[alpha_bin], distance_cathode_plane, true );
-
-    // added failsafe in case tau extrapolation for d > 200 drops below zero [could it do this?]
-    if (tau < 0){
-        tau = 0;
+    // cut-off
+    // interpolate in x for each r bin
+    std::vector<double> interp_vals(cut_off_bins[theta_bin].size(), 0.0);
+    for (int i = 0; i < cut_off_bins[theta_bin].size(); i++){
+        interp_vals[i] = interpolate(refl_vdistances, cut_off_bins[theta_bin][i], distance_cathode_plane, true);
     }
+    // interpolate in r
+    double cutoff = interpolate(refl_vradial, interp_vals, R, true);
     
+    // tau
+    // interpolate in x for each r bin
+    std::vector<double> interp_vals_tau(tau_bins[theta_bin].size(), 0.0);
+    for (int i = 0; i < tau_bins[theta_bin].size(); i++){
+        interp_vals_tau[i] = interpolate(refl_vdistances, tau_bins[theta_bin][i], distance_cathode_plane, true);
+    }
+    // interpolate in r
+    double tau = interpolate(refl_vradial, interp_vals_tau, R, true);
+
     // apply smearing:
     for (int i=0; i < number_photons; i++){
         double arrival_time = transport_time_vis[i];
@@ -269,12 +262,11 @@ vector<double> time_parameterisation::getVisTime(TVector3 ScintPoint, TVector3 O
     return transport_time_vis;
 }
 
-double time_parameterisation::getVUVmin(int index){
-
-    if (VUV_min[index] == 0) {
-        generateparam(index);
+double time_parameterisation::getVUVmin(const int &index, const int &angle_bin){
+    
+    if (VUV_min[angle_bin][index] == 0) {
+        generateparam(index, angle_bin);
     }   
-
-    double min = VUV_min[index];
+    double min = VUV_min[angle_bin][index];
     return min;
 }
