@@ -112,8 +112,8 @@ double utility_functions::fso(double *x, double *par)
        double E = *x;
        double Eav = par[0];
 
-       TFile *f = new TFile("solar_neu_energy_spline.root");
-       TSpline3 *spline = (TSpline3*)f->Get("Spline3");
+       TFile *f = new TFile("../spectra/solar_neu_energy_spline.root");
+       TSpline3 *spline = (TSpline3*)f->Get("../spectra/Spline3");
        double f_s_neu = spline->Eval(E);
        f->Close();
 
@@ -127,8 +127,8 @@ double utility_functions::fhep(double *x, double *par)
       double E = *x;
       double Eav = par[0];
 
-      TFile *f1 = new TFile("hep_neu_energy_spline.root");
-      TSpline3 *spline = (TSpline3*)f1->Get("Spline3");
+      TFile *f1 = new TFile("../spectra/hep_neu_energy_spline.root");
+      TSpline3 *spline = (TSpline3*)f1->Get("../spectra/Spline3");
       double f_hep_neu = spline->Eval(E);
       f1->Close();
 
@@ -148,4 +148,5 @@ double utility_functions::Rn_function(double *x, double *par)
       
       return gauss;
       }
+
       

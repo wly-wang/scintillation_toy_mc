@@ -7,7 +7,7 @@
 #include <sstream>//necessary?
 #include <vector>//necessary?
 #include <algorithm>//necessary?
-
+#include "TH1.h"
 
 #include "TRandom.h"
 #include "TVector3.h"
@@ -74,6 +74,15 @@ int main() {
 
         TRandom3 *fGauss = new TRandom3();
 
+        double a_gamma_distance;
+	double gamma_length = 12.0;
+	double added_x;
+	double added_y;
+	double added_z;
+
+        TFile *f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
+	TH1D *alpha_gamma = (TH1D*)f_alpha->Get("histo");
+	//TF1 *fExp_dec = new TF1("fExp_dec",utility_functions::Exp_dec,0,50,1);
 
 	//////-----NOT SURE IF THESE VARIABLES ARE RELEVANT-----//////
         int max_events;
@@ -232,6 +241,14 @@ int main() {
            particle = "alpha";
            cout << "\nGenerating " << max_events << ", Po214 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
+        if(parameters::gen_alpha_gamma == true){ //gen_radon == true
+           max_events = parameters::max_events_alpha_gamma;
+           scint_yield = parameters::scint_yield_alpha;
+           particle = "alpha";
+           cout << "\nGenerating " << max_events << ", Alpha-gamma decays in time window: " << parameters::time_window << " seconds." << endl;
+        }
+
+
 
 	///////----------INCLUDED THIS max_events variable TO KEEP CONSISTENT BETWEEN VERSIONS, can delete one-------////////
 	//parameters::number_events = max_events;
@@ -292,7 +309,17 @@ int main() {
         if(parameters::gen_Rn222 == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}
         if(parameters::gen_Po218 == true) {energy = fGauss->Gaus(parameters::Q_Po218, 0.05);}
         if(parameters::gen_Po214 == true) {energy = fGauss->Gaus(parameters::Q_Po214, 0.05);}
-
+	//alpha-gamma energy
+	if(parameters::gen_alpha_gamma == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}
+	    if(event % 2 ==0) { //Alpha event
+		//scint_yield = parameters::scint_yield_alpha;
+                energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);
+	    }
+            else { //Gamma event
+		//energy = fGauss->Gaus(15, 0.1);
+		//scint_yield = parameters::scintillation_yield;
+		energy = 15.0;
+	    }
         energy_list.push_back(energy);
 
         // determine position of event
@@ -323,15 +350,55 @@ int main() {
            position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
         }
 
+        //Event generation for alpha-gammas from Rn222 chain
+        if(parameters::gen_alpha_gamma == true) {
+	    if(event % 2 ==0) { //Alpha event
+                position_list[event][0] = alpha_gamma->GetRandom();
+                position_list[event][1] = gRandom->Uniform(parameters::entire_y_position_range[0],parameters::entire_y_position_range[1]);
+                position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
+	    }
+	    else { //Gamma event
+		a_gamma_distance = gRandom->Exp(gamma_length);
+		TRandom obj;
+		obj.SetSeed(0);
+		obj.Sphere(added_x, added_y, added_z, a_gamma_distance);
+		//std::cout << "r is " << a_gamma_distance << endl;
+		//std::cout << "x is " << added_x << "  y is " << added_y << "  z is " << added_z << endl;
+		position_list[event][0] = position_list[event-1][0] + added_x;
+                position_list[event][1] = position_list[event-1][1] + added_y;
+                position_list[event][2] = position_list[event-1][2] + added_z;
+            }
+	}
+                //These statements are to stop gammas exiting through the edges of the TPC
+                if (position_list[event][0] > 363.0) {
+                    position_list[event][0] = 363.0;
+                }
+                if (position_list[event][0] < 1.0) {
+                    position_list[event][0] = 1.0;
+                }
+                if (position_list[event][1] > 600.0) {
+                    position_list[event][1] = 600.0;
+                }
+                if (position_list[event][1] < -600.0) {
+                    position_list[event][1] = -600.0;
+                }
+                if (position_list[event][2] > 1400.0) {
+                    position_list[event][2] = 1400.0;
+                }
+                if (position_list[event][2] < 0.0) {
+                    position_list[event][2] = 0.0;
+                }
+
+
 	//---------SET THESE FOR FIXED POSITIONS----------//
-        position_list[event][0] = gRandom->Uniform(310.0,parameters::entire_x_position_range[1]);
+        //position_list[event][0] = gRandom->Uniform(310.0,parameters::entire_x_position_range[1]);
         //position_list[event][0] = 5.0; //Fixed x position
         //position_list[event][1] = 0.0; //Fixed y position
         //position_list[event][2] = 200.0; //Fixed z position
 
         // add event properties to output file
         output_file.add_event(event, energy_list[event], position_list[event]);
-	}
+	}//End of event loop
 	std::cout << "Event generation complete." << std::endl << std::endl;
 	
 	// --------- Calculate hits and times ----------
@@ -436,6 +503,7 @@ int main() {
 
 	} // end of event loop
 
+	f_alpha->Close();
 	// write output root file
 	output_file.write_output_file();
 

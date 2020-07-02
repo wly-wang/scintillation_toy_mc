@@ -3,12 +3,12 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "../data/event_10000_15MeV_310_350_90cm.root";
+	const char *output_file_name = "../data/event_10000_alpha-gamma_hard_walls_2.root";
 
         ///-------------------------------------
         //--------WHAT events to generate?------
         ///-------------------------------------
-        bool fixed_energy = true; //If gamma activity this will be set to true in the analyze_light.cpp
+        bool fixed_energy = false; //If gamma activity this will be set to true in the analyze_light.cpp
 	double fixedE = 15.0; //Set to -1.0 to check if fixed value has been correctly assigned
         bool supernova = false;
         bool solar = false;
@@ -35,7 +35,7 @@ namespace parameters {
 	bool gen_Po214 = false;
 	bool gen_Po210 = false;
         bool gen_Bi214 = false;
-
+	bool gen_alpha_gamma = true;
         ///-------------------------------------
         ////----LAr & Ar39 properties--------------------
         /////-------------------------------------
@@ -164,7 +164,7 @@ namespace parameters {
         const int max_events_Kr85G2 = max_events_Kr85B2;
         const int max_events_hep = 100;
 
-
+        const int max_events_alpha_gamma = 10000;
 
 	// semi_analytic hits
 	// set to false
