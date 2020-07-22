@@ -82,6 +82,16 @@ void utility_functions::initalise_scintillation_function(const double t_singlet,
     if(particle_type == 1) fScintillation_function->FixParameter(2, 1);		// alpha
 }
 
+// function to create scintillation function TF1 with required parameters for alpha events
+void utility_functions::initalise_scintillation_function_alpha(const double t_singlet, const double t_triplet, const double scint_time_window, const double particle_type) {
+
+        // create scintillation spectrum
+        fScintillation_function_alpha = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 3);
+        fScintillation_function_alpha->SetParameter(0, t_singlet);
+    fScintillation_function_alpha->SetParameter(1, t_triplet);
+    fScintillation_function_alpha->FixParameter(2, 1);         // alpha
+}
+
 //Beta Decay Function ///chrisflynn
 double utility_functions::SpectrumFunction(double *x, double *par)
 {

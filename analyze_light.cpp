@@ -38,6 +38,7 @@ int main() {
 	// -------- Initialise utility/energy spectrum class ---------
 	utility_functions utility;
 	utility.initalise_scintillation_function(parameters::t_singlet, parameters::t_triplet, parameters::scint_time_window, parameters::particle_type);
+        utility.initalise_scintillation_function_alpha(parameters::t_singlet, parameters::t_triplet, parameters::scint_time_window, 1); //added to allow for alpha and gammas in same .root
 
 	// ------- Read photon detector positions and types --------
 	std::vector<std::vector<int>> opdet_type;
@@ -82,7 +83,6 @@ int main() {
 
         TFile *f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
 	TH1D *alpha_gamma = (TH1D*)f_alpha->Get("histo");
-	//TF1 *fExp_dec = new TF1("fExp_dec",utility_functions::Exp_dec,0,50,1);
 
 	//////-----NOT SURE IF THESE VARIABLES ARE RELEVANT-----//////
         int max_events;
@@ -318,7 +318,7 @@ int main() {
             else { //Gamma event
 		//energy = fGauss->Gaus(15, 0.1);
 		//scint_yield = parameters::scintillation_yield;
-		energy = 15.0;
+		energy = fGauss->Gaus(15.0, 2.9);
 	    }
         energy_list.push_back(energy);
 
@@ -398,13 +398,16 @@ int main() {
 
         // add event properties to output file
         output_file.add_event(event, energy_list[event], position_list[event]);
+
 	}//End of event loop
+
 	std::cout << "Event generation complete." << std::endl << std::endl;
 	
 	// --------- Calculate hits and times ----------
 	std::cout << "Determining number of photon hits..." << std::endl;
 
 	//Efficiency testing
+	/*
 	std::chrono::steady_clock::time_point t_all_i; std::chrono::steady_clock::time_point t_all_f;
         std::chrono::steady_clock::time_point t_VUVTime_i; std::chrono::steady_clock::time_point t_VUVTime_f;
         std::chrono::steady_clock::time_point t_ReflTime_i; std::chrono::steady_clock::time_point t_ReflTime_f;
@@ -417,7 +420,7 @@ int main() {
         std::chrono::duration<double> timespan_Refl_hits (0.);
 
         t_all_i = std::chrono::steady_clock::now();
-
+*/
 	// loop each event in events list
 	//for(int event = 0; event < parameters::number_events; event++) {
 	for(int event = 0; event < max_events; event++) {
@@ -430,6 +433,87 @@ int main() {
             std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
         }
 
+        if(event % 2 ==0) { //Alpha event
+
+        // calculate total scintillation yield from the event
+        int number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+
+        // loop over each optical channel
+        for(int op_channel = 0; op_channel < number_opdets; op_channel++) {
+
+                // get optical detector type - rectangular or disk aperture
+                int op_channel_type = opdet_type[op_channel][1];
+
+                // get scintillation point and detection channel coordinates (in cm)
+            TVector3 ScintPoint(position_list[event][0],position_list[event][1],position_list[event][2]);
+            TVector3 OpDetPoint(opdet_position[op_channel][0],opdet_position[op_channel][1],opdet_position[op_channel][2]);
+
+            // determine number of hits on optical channel via semi-analytic model:
+            // VUV
+            int num_VUV = 0;
+            // incident photons
+            int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
+            // apply additional factors QE etc.            
+            for(int i = 0; i < num_VUV_geo; i++) {
+                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only)) num_VUV++;
+            }
+            // Visible
+            int num_VIS = 0;
+            if (parameters::include_reflected) {
+                // incident photons
+                int num_VIS_geo = 0;
+                num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model        
+                // apply additional factors QE etc.
+                for(int j = 0; j < num_VIS_geo; j++) {
+                        if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only)) num_VIS++;
+                }
+            }
+
+            // if no photons from this event for this optical channel, go to the next channel.
+            if(num_VUV+num_VIS == 0) { continue; } // forces the next iteration
+
+            // calculate timings
+            std::vector<double> total_time_vuv; total_time_vuv.reserve(num_VUV);
+            std::vector<double> total_time_vis; total_time_vis.reserve(num_VIS);
+            if (parameters::include_timings){
+                // VUV                  
+                if(num_VUV > 0) {
+                        // transport times
+                        double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
+                        double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance_to_pmt;
+                                        double theta = acos(cosine)*180./3.14159;
+                                        int angle_bin = theta/45;       // 45 deg bins    
+
+                        std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
+
+                        // total times
+                        for(auto& x: transport_time_vuv) {
+                                double total_time = (x*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+                                total_time_vuv.push_back(total_time);
+                        }
+                }
+                // VIS
+                if (num_VIS > 0 && parameters::include_reflected) {
+                        // transport times
+                        std::vector<double> transport_time_vis = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS);
+                        // total times
+                        for(auto& y: transport_time_vis) {
+                                double total_time = (y*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+                                total_time_vis.push_back(total_time);
+                        }
+                }
+            }
+
+            // fill data trees for each photon detected
+            if (parameters::include_timings) output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint, total_time_vuv, total_time_vis);
+            else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
+
+        } // end of optical channel loop
+
+	} // end of alpha event
+
+	else { //Gamma event
+		
         // calculate total scintillation yield from the event
         int number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
 
@@ -504,6 +588,8 @@ int main() {
             else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
 
         } // end of optical channel loop
+
+        } //end of gamma event
 
 	} // end of event loop
 
