@@ -73,4 +73,5 @@ void utility_functions::initalise_scintillation_function(const double t_singlet,
     fScintillation_function->SetParameter(1, t_triplet);  
     if(particle_type == 0) fScintillation_function->FixParameter(2, 0); 	// electron  
     if(particle_type == 1) fScintillation_function->FixParameter(2, 1);		// alpha
+    fScintillation_function->SetNpx(50000);    
 }
