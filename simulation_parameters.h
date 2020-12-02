@@ -32,7 +32,6 @@ namespace parameters {
 
 	// photon detection system properties
 	const double quantum_efficiency = 0.035;				// arapuca QE
-	const double wireplane_factor = 0.7;	
 	const double vuv_transmission = 0.5;	// efficiency of any detector to VUV photons (128 or 174 nm)
 	const double vis_transmission = 0.7; 	// efficiency of any detector to Visible photons
 	
