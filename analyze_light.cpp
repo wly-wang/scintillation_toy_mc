@@ -534,7 +534,7 @@ int main() {
             int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
             // apply additional factors QE etc.            
             for(int i = 0; i < num_VUV_geo; i++) {
-                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only)) num_VUV++;   
+                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only)) num_VUV++;   
             }
             // Visible
             int num_VIS = 0;
@@ -544,7 +544,7 @@ int main() {
                 num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model        
                 // apply additional factors QE etc.
             	for(int j = 0; j < num_VIS_geo; j++) {
-                	if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only)) num_VIS++;
+                	if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only)) num_VIS++;
                 }
             }
 
