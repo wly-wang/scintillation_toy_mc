@@ -3,7 +3,7 @@
 namespace parameters {
 	
 	// output file
-	const char *output_file_name = "../data/event_10000_alpha-gamma_hard_walls_2.root";
+	const char *output_file_name = "../new_data/a-gamma_test_3.root";
 
         ///-------------------------------------
         //--------WHAT events to generate?------
@@ -13,7 +13,7 @@ namespace parameters {
         bool supernova = false;
         bool solar = false;
         bool gen_hep = false;
-        bool gen_argon = false;
+        bool gen_argon = false; //This is Ar39
         bool gen_Co60B = false;
         bool gen_Co60G1 = false; //fixed energy = 1.173 Mev
         bool gen_Co60G2 = false; //fixed energy = 1.332 Mev
@@ -25,7 +25,6 @@ namespace parameters {
         bool gen_Kr85B2 = false;
         bool gen_Kr85G1 = false; //fixed energy = 0.151 Mev
         bool gen_Kr85G2 = false; //fixed energy = 0.305 Mev
-        bool gen_radon = false;
 	bool gen_Pb214 = false;
 	//////-------------------------------///////
 	//////--Radon alpha chain daughters--///////
@@ -35,7 +34,7 @@ namespace parameters {
 	bool gen_Po214 = false;
 	bool gen_Po210 = false;
         bool gen_Bi214 = false;
-	bool gen_alpha_gamma = true;
+	bool gen_alpha_gamma = true; //specifically for generating an alpha event followed by a rare gamma emission
         ///-------------------------------------
         ////----LAr & Ar39 properties--------------------
         /////-------------------------------------
@@ -51,7 +50,6 @@ namespace parameters {
         const double Q_Kr85G2 = 0.305;
         const double Q_Pb214 = 1.03;
         const double Q_Bi214 = 3.2;
-
         const double activity_Ar = 1.01;
 
         ///-------------------------------------
@@ -59,7 +57,6 @@ namespace parameters {
         /////-------------------------------------
         const double Eav = 20.;                         // Average energy for SN spectrum
         const double expected_sn = 2.8;         // For poisson weighting
-        ///-------------------------------------
 
         ///-------------------------------------
         ////----Radon properties---------------------
@@ -71,39 +68,31 @@ namespace parameters {
         const double Q_Po218 = 6.0;
         const double Q_Po214 = 7.7;
         const double Q_Po210 = 5.3;
-        ///-------------------------------------
 
-
-	// position
-	// random position ranges
-	// Patrick Dimensions "Middle third" of a module
-	const double entire_x_position_range[2] {5,350};	// cm
+	//----------------------------------------------
+	//---------Dimensions of event region-----------
+	//----------------------------------------------
+	const double entire_x_position_range[2] {5,363};	// cm from anode [Note can get problems from too much light if generating events < 5 cm from anode]
 	const double entire_y_position_range[2] {-600,600};	// cm
-	//const double entire_z_position_range[2] {400,1000};	// cm
+	//const double entire_z_position_range[2] {400,1000};	// cm [this comes from the "middle third"]
         const double entire_z_position_range[2] {0,1400};   // cm
 
-        //chrisflynn dimensions
-        //whole volume
-        //Ar39, Ar40, Bi214, K42, Kr85B1, Kr85B2, Kr85G1, Kr85G2, Pb214, Rn222
-        /*const double entire_x_position_range[2] {10,363};      // cm
-        const double entire_y_position_range[2] {-658,600};    // cm
-        const double entire_z_position_range[2] {0,1400};    // cm
-        */
+	//----------------------------------------------
+	//-------Positions of radioactive material------
+	//----------------------------------------------
+	//------[these come from Jingyuan/LArSoft]------
         //40KB,40KG 
         const double K_x_position_range[2] {3.495e2,3.505e2};      // cm
         const double K_y_position_range[2] {-600,600};    // cm
         const double K_z_position_range[2] {0,1395};    // cm
-
         //Co60B
         const double Co_x_position_range[2] {-5e-1,5e-1};      // cm
         const double Co_y_position_range[2] {-600,600};    // cm
         const double Co_z_position_range[2] {0,1395};    // cm
-
         //Po210
         const double Po_x_position_range[2] {4.77e-1,1.477};      // cm
         const double Po_y_position_range[2] {-600,600};    // cm
         const double Po_z_position_range[2] {0,1395};    // cm
-
         
 
         //chrisflynn mass
@@ -114,23 +103,18 @@ namespace parameters {
         const double time_window = 1; //readout window (running time of the simulation in seconds)
         const double time_frames = int(time_window/frame_time); // number of frames registered
         
-
-
-        ///-------------------------------------
-        ////----Number of Events------------------
-        /////-------------------------------------
+        //-------------------------------------
+        //----Number of Events-----------------
+        //-------------------------------------
         // Fixed energy (electron like) events:
         const int max_events_FE = 10000;
-	//const int number_events = max_events_FE;
-	//const double energy = 25;     //MeV
-
-        // Ar-39 events:
-        //const int max_events_Ar = 10;
-        const int max_events_Ar = activity_Ar * entire_mass * time_window;//FULL volume for 1 TPC
+        
+	// Ar-39 events:
+        //const int max_events_Ar = activity_Ar * entire_mass * time_window;//FULL volume for 1 TPC
+	const int max_events_Ar = 1000;
         const int Ar_decays_per_sec = activity_Ar* entire_mass; // decay rate in one TPC
-
-        // Radon events:
-        //const int max_events_Rn = 1000000;//To check the Fprompt, you need more Rn events, hope fully it would give you 6000000 photons
+        
+	// Radon events:
         const int max_events_Rn = 5.584e-5 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.01; //the 0.01 is included because of design changes to reduce alpha see https://indico.fnal.gov/event/20794/contribution/0/material/slides/0.pdf
         const int max_events_Rn222 = max_events_Rn * 0.25;
 	const int max_events_Po218 = max_events_Rn * 0.25; //0.25 comes from 4 alpha decays in chain from Rn222, each contributes 10Bq/kg * 0.01 with new Rn222 condition
@@ -139,37 +123,30 @@ namespace parameters {
         const int max_events_Po210 = 5e-6 * (Po_x_position_range[1]-Po_x_position_range[0])*(Po_y_position_range[1]-Po_y_position_range[0])*(Po_z_position_range[1]-Po_z_position_range[0]) * time_window;//Activity from Po210 in the APAs
         const int max_events_Pb214 = max_events_Rn * 0.25;  
         const int max_events_Bi214 = max_events_Rn * 0.25;  
-        //const int max_events_Rn = activity_Rn * mass * time_window;//Half volume for 1 (NOTE: for a small time window, this will probably return 0)
         const double Rn_decays_per_sec = activity_Rn* entire_mass; // decay rate in one TPC
-
-        // Supernova events:
+        
+	//Supernova events:
          const int max_events_SN = time_frames;
-        //int max_events_SN = utility::poisson(expected_sn,gRandom->Uniform(1.),1.);
+        
+	 //8B Solar neutrino events:
+        const int max_events_SO = 1000;
 
-        // Solar neutrino events:
-        const int max_events_SO = 10000;
-        //const int max_events_SO = 0.00962286; //chrisflynn solarneutrino calculated for 10kt DUNE Module
-        //int max_events_SO = utility::poisson(expected_sn,gRandom->Uniform(1.),1.);
-
+	// Other radiactive bkgs
         const int max_events_Co60B = 8.2e-5 * (Co_x_position_range[1]-Co_x_position_range[0])*(Co_y_position_range[1]-Co_y_position_range[0])*(Co_z_position_range[1]-Co_z_position_range[0]) * time_window;//For beta decay, near 100% would have beta decay and 200% gamma decay
         const int max_events_Co60G1 = max_events_Co60B;
         const int max_events_Co60G2 = max_events_Co60B;
         const int max_events_Ar42 = 1.283768e-7 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window;//1.41e-3 Bq*cm^-3 from mcc11 simulation
         const int max_events_K42 = max_events_Ar42 * 0.819;
 	const int max_events_40KB = 10000000;
-        //const int max_events_40KB = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.8928;//89.28% ratio for beta decay
-        const int max_events_40KG = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.1072;//10.72% ratio for gamma decay
+        const int max_events_40KG = 2.7195e-3 * (K_x_position_range[1]-K_x_position_range[0])*(K_y_position_range[1]-K_y_position_range[0])*(K_z_position_range[1]-K_z_position_range[0]) * time_window * 0.1072;//10.72% ratio for gamma
         const int max_events_Kr85B1 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.785;//near 100% of Kr82 would have beta decay
         const int max_events_Kr85B2 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.14;
         const int max_events_Kr85G1 = 1.6e-4 * (entire_x_position_range[1]-entire_x_position_range[0])*(entire_y_position_range[1]-entire_y_position_range[0])*(entire_z_position_range[1]-entire_z_position_range[0]) * time_window * 0.785 * 0.752;
         const int max_events_Kr85G2 = max_events_Kr85B2;
         const int max_events_hep = 100;
-
-        const int max_events_alpha_gamma = 10000;
-
-	// semi_analytic hits
-	// set to false
-	//const bool use_crowns_model = false;	// crowns model for visible hits, preliminary
+	
+	// Alpha-gamma events
+        const int max_events_alpha_gamma = 200000; //This is the number of alpha and gammas added together, e.g for 2 events get 1 alpha and 1 gamma
 
 	// timings
 	const bool include_timings = true;
@@ -177,7 +154,6 @@ namespace parameters {
 
 	// visible light
 	const bool include_reflected = true;
-
 
 	// photon detection system properties
 	const double quantum_efficiency = 0.035;				// arapuca QE

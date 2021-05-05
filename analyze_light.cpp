@@ -8,7 +8,6 @@
 #include <vector>//necessary?
 #include <algorithm>//necessary?
 #include "TH1.h"
-
 #include "TRandom.h"
 #include "TVector3.h"
 
@@ -44,9 +43,25 @@ int main() {
 	std::vector<std::vector<int>> opdet_type;
 	std::vector<std::vector<double>> opdet_position;
 
-	/////////////-------------INCLUDING BACKGROUND BOOLS---------------////////////////////
 
-        double Q_beta_endpoint = 0;     
+        //---Alpha-gamma parameters
+        double a_gamma_distance;
+        double gamma_length = 12.0; //Taken as gamma shower length in LAr, 12 cm
+        double added_x;
+        double added_y;
+        double added_z;
+
+        //---Reading in positions of alpha decays from .root
+        TFile *f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
+        TH1D *alpha_gamma = (TH1D*)f_alpha->Get("histo");
+
+        int max_events;
+        int scint_yield;
+        string particle;
+
+
+	/////////////-------------Setting beta and gamma spectra---------------////////////////////
+        double Q_beta_endpoint = 0;    
         if(parameters::gen_argon == true) {Q_beta_endpoint = parameters::Q_Ar;}
         if(parameters::gen_Co60B == true) {Q_beta_endpoint = parameters::Q_Co60B;}
         if(parameters::gen_Ar42 == true) {Q_beta_endpoint = parameters::Q_Ar42;}
@@ -56,7 +71,7 @@ int main() {
         if(parameters::gen_Kr85B2 == true) {Q_beta_endpoint = parameters::Q_Kr85B2;}
         if(parameters::gen_Pb214 == true) {Q_beta_endpoint = parameters::Q_Pb214;}
         if(parameters::gen_Bi214 == true) {Q_beta_endpoint = parameters::Q_Bi214;}
-
+	//---Gammas---// (Could add some smearing to these spectra, but don't currently)
         if(parameters::gen_Co60G1 == true) {parameters::fixed_energy = true; parameters::fixedE = 1.173;}
         else if(parameters::gen_Co60G2 == true) {parameters::fixed_energy = true; parameters::fixedE = 1.332;}
         else if(parameters::gen_40KG == true) {parameters::fixed_energy = true; parameters::fixedE = 1.46;}
@@ -75,22 +90,7 @@ int main() {
 
         TRandom3 *fGauss = new TRandom3();
 
-        double a_gamma_distance;
-	double gamma_length = 12.0;
-	double added_x;
-	double added_y;
-	double added_z;
-
-        TFile *f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
-	TH1D *alpha_gamma = (TH1D*)f_alpha->Get("histo");
-
-	//////-----NOT SURE IF THESE VARIABLES ARE RELEVANT-----//////
-        int max_events;
-        int scint_yield;
-        string particle;
-
-        // GAMMA backgrounds
-
+        //---GAMMA backgrounds
         if(parameters::fixed_energy == true) {
            max_events = parameters::max_events_FE;
         if(parameters::gen_Co60G1 == true) {max_events = parameters::max_events_Co60G1;}
@@ -99,44 +99,31 @@ int main() {
         if(parameters::gen_Kr85G1 == true) {max_events = parameters::max_events_Kr85G1;}
         if(parameters::gen_Kr85G2 == true) {max_events = parameters::max_events_Kr85G2;}
 
-           scint_yield = parameters::scintillation_yield;
-           particle = "electron";
-           cout << endl << "Generating " << max_events << " events, of fixed energy: " << parameters::fixedE << " MeV." << endl;
+        scint_yield = parameters::scintillation_yield;
+        particle = "electron";
+	std::cout << std::endl << "Generating " << max_events << " events, of fixed energy: " << parameters::fixedE << " MeV." << std::endl;
         }
+	//---Other backgrounds
         if(parameters::gen_argon == true) {
            fSpectrum->SetParameter(0, parameters::Q_Ar);
-           //utility.SpectrumFunction->SetParameter(0, parameters::Q_Ar);//Setting the endpoint to Ar39 beta decay endpoint
-
            max_events = parameters::max_events_Ar;
            scint_yield = parameters::scintillation_yield;
-           particle = "electron";
+           particle = "electron"; //This isn't used to generate anything, just a label which can be printed
            cout << endl << "Generating " << max_events << ", Ar 39 decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "***NOTE. In ONE TPC, We expect to see: " << parameters::Ar_decays_per_sec << " Ar 39 decays each second.***" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::gen_Co60B == true) {
            fSpectrum->SetParameter(0, parameters::Q_Co60B);
-           //utility.SpectrumFunction(double *x, double *par)->SetParameter(0, parameters::Q_Co60B);//Setting the endpoint to Ar39 beta decay endpoint
            max_events = parameters::max_events_Co60B;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Co60 beta decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::gen_Ar42 == true) {
            fSpectrum->SetParameter(0, parameters::Q_Ar42);
-           //utility.SpectrumFunction(double *x, double *par)->SetParameter(0, parameters::Q_Ar42);//Setting the endpoint to Ar39 beta decay endpoint
            max_events = parameters::max_events_Ar42;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Ar42 beta decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::gen_40KB == true) {
            fSpectrum->SetParameter(0, parameters::Q_40KB);
@@ -144,9 +131,6 @@ int main() {
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", 40K beta decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::gen_Kr85B1 == true) {
            fSpectrum->SetParameter(0, parameters::Q_Kr85B1);
@@ -154,9 +138,6 @@ int main() {
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Kr85B1 beta decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::gen_Kr85B2 == true) {
            fSpectrum->SetParameter(0, parameters::Q_Kr85B2);
@@ -164,9 +145,6 @@ int main() {
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Kr85B2 beta decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "//////////////////////////////////////////////////////////////////////////////" << endl << endl;
         }
         if(parameters::supernova == true){
            max_events = parameters::max_events_SN;
@@ -201,57 +179,42 @@ int main() {
            particle = "electron";
            cout << "\nGenerating " << max_events << ", K42 events.\n";
         }
-        if(parameters::gen_hep == true){
+        if(parameters::gen_hep == true){ //hep solar neutrinos
            max_events = parameters::max_events_hep;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << "\nGenerating " << max_events << ", hep events.\n";
         }
-        if(parameters::gen_radon == true){ //gen_radon == true
-           max_events = parameters::max_events_Rn;
-           scint_yield = parameters::scint_yield_alpha;
-           particle = "alpha";
-           cout << "\nGenerating " << max_events << ", Radon 222 decays in time window: " << parameters::time_window << " seconds." << endl;
-           cout << "This is equal to " << parameters::time_frames << " PMT readout frames." << endl;
-           cout << endl << "/////////////////////////////////////////////////////////////////////////////" << endl;
-           cout << "***NOTE. In ONE TPC, we expect to see: " << parameters::Rn_decays_per_sec << " radon-222 decays each second.***" << endl;
-           cout << "/////////////////////////////////////////////////////////////////////////////" << endl << endl;
-        }
-        if(parameters::gen_Po210 == true){ //gen_radon == true
+        if(parameters::gen_Po210 == true){
            max_events = parameters::max_events_Po210;
            scint_yield = parameters::scint_yield_alpha;
            particle = "alpha";
            cout << "\nGenerating " << max_events << ", Po210 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
-        if(parameters::gen_Rn222 == true){ //gen_radon == true
+        if(parameters::gen_Rn222 == true){
            max_events = parameters::max_events_Rn222;
            scint_yield = parameters::scint_yield_alpha;
            particle = "alpha";
            cout << "\nGenerating " << max_events << ", Rn222 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
-        if(parameters::gen_Po218 == true){ //gen_radon == true
+        if(parameters::gen_Po218 == true){
            max_events = parameters::max_events_Po218;
            scint_yield = parameters::scint_yield_alpha;
            particle = "alpha";
            cout << "\nGenerating " << max_events << ", Po218 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
-        if(parameters::gen_Po214 == true){ //gen_radon == true
+        if(parameters::gen_Po214 == true){
            max_events = parameters::max_events_Po214;
            scint_yield = parameters::scint_yield_alpha;
            particle = "alpha";
            cout << "\nGenerating " << max_events << ", Po214 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
-        if(parameters::gen_alpha_gamma == true){ //gen_radon == true
+        if(parameters::gen_alpha_gamma == true){
            max_events = parameters::max_events_alpha_gamma;
            scint_yield = parameters::scint_yield_alpha;
-           particle = "alpha";
            cout << "\nGenerating " << max_events << ", Alpha-gamma decays in time window: " << parameters::time_window << " seconds." << endl;
         }
 
-
-
-	///////----------INCLUDED THIS max_events variable TO KEEP CONSISTENT BETWEEN VERSIONS, can delete one-------////////
-	//parameters::number_events = max_events;
 
 	std::cout << "Loading Photon Detector positions..." << std::endl;
         std::ifstream detector_positions_file;
@@ -272,24 +235,22 @@ int main() {
     int number_opdets = opdet_type.size();
     std::cout << "Positions Loaded: " << number_opdets << " optical detectors." << std::endl << std::endl;
 
-	// ----------- Create Events ------------
-	// generate event positions and energies, storing information in output file	
+    // ----------- Create Events ------------//
+    //generate event positions and energies, storing information in output file	
+    std::vector<double> energy_list; 
+    energy_list.reserve(max_events);
+    std::vector<std::vector<double>> position_list(max_events, std::vector<double>(3,0.0));
 
-	std::vector<double> energy_list; 
-	//energy_list.reserve(parameters::number_events);
-	energy_list.reserve(max_events);
-	//std::vector<std::vector<double>> position_list(parameters::number_events, std::vector<double>(3,0.0)); 
-	std::vector<std::vector<double>> position_list(max_events, std::vector<double>(3,0.0));
+    std::cout << "Generating events..." << std::endl;
 
-	std::cout << "Generating events..." << std::endl;
-	for (int event = 0; event < max_events; event++){
+    for (int event = 0; event < max_events; event++){//Start of event loop
 
-		// output completion %
+	//--Printing Completion %
         if ( (event != 0) && (max_events >= 10) &&  (event % (max_events/10) == 0) ) {
             std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
         }
 
-        // determine energy of event
+        //--Energy of event
         double energy;
         if(parameters::fixed_energy == true) {energy = parameters::fixedE;}
         if(parameters::gen_argon == true) {energy = fSpectrum->GetRandom();}    
@@ -304,27 +265,23 @@ int main() {
         if(parameters::supernova == true) {energy = flandau_sn->GetRandom();}   
         if(parameters::solar == true) {energy = flandau_so->GetRandom();}   
         if(parameters::gen_hep == true) {energy = flandau_hep->GetRandom();}
-        if(parameters::gen_radon == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}  
         if(parameters::gen_Po210 == true) {energy = fGauss->Gaus(parameters::Q_Po210, 0.05);}
         if(parameters::gen_Rn222 == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}
         if(parameters::gen_Po218 == true) {energy = fGauss->Gaus(parameters::Q_Po218, 0.05);}
         if(parameters::gen_Po214 == true) {energy = fGauss->Gaus(parameters::Q_Po214, 0.05);}
-	//alpha-gamma energy
-	if(parameters::gen_alpha_gamma == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}
+	//--Alpha-gamma energy
+	if(parameters::gen_alpha_gamma == true) {
 	    if(event % 2 ==0) { //Alpha event
-		//scint_yield = parameters::scint_yield_alpha;
                 energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);
 	    }
             else { //Gamma event
-		//energy = fGauss->Gaus(15, 0.1);
-		//scint_yield = parameters::scintillation_yield;
 		energy = fGauss->Gaus(15.0, 2.9);
 	    }
+	}
         energy_list.push_back(energy);
 
-        // determine position of event
-        // choose random position in 3D range
-        if(parameters::fixed_energy == true || parameters::gen_argon == true || parameters::gen_Ar42 == true || parameters::gen_K42 == true || parameters::gen_Bi214 == true || parameters::gen_Pb214 == true || parameters::gen_Kr85B1 == true || parameters::gen_Kr85B2 == true || parameters::supernova == true || parameters::solar == true || parameters::gen_hep == true || parameters::gen_radon == true || parameters::gen_Kr85G1 == true || parameters::gen_Kr85G2 == true){
+        //--Position of event
+        if(parameters::fixed_energy == true || parameters::gen_argon == true || parameters::gen_Ar42 == true || parameters::gen_K42 == true || parameters::gen_Bi214 == true || parameters::gen_Pb214 == true || parameters::gen_Kr85B1 == true || parameters::gen_Kr85B2 == true || parameters::supernova == true || parameters::solar == true || parameters::gen_hep == true || parameters::gen_Kr85G1 == true || parameters::gen_Kr85G2 == true){
            position_list[event][0] = gRandom->Uniform(parameters::entire_x_position_range[0],parameters::entire_x_position_range[1]);
            position_list[event][1] = gRandom->Uniform(parameters::entire_y_position_range[0],parameters::entire_y_position_range[1]);
            position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
@@ -350,7 +307,7 @@ int main() {
            position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
         }
 
-        //Event generation for alpha-gammas from Rn222 chain
+        //--Position of alpha-gammas from Rn222 chain
         if(parameters::gen_alpha_gamma == true) {
 	    if(event % 2 ==0) { //Alpha event
                 position_list[event][0] = alpha_gamma->GetRandom();
@@ -362,8 +319,6 @@ int main() {
 		TRandom obj;
 		obj.SetSeed(0);
 		obj.Sphere(added_x, added_y, added_z, a_gamma_distance);
-		//std::cout << "r is " << a_gamma_distance << endl;
-		//std::cout << "x is " << added_x << "  y is " << added_y << "  z is " << added_z << endl;
 		position_list[event][0] = position_list[event-1][0] + added_x;
                 position_list[event][1] = position_list[event-1][1] + added_y;
                 position_list[event][2] = position_list[event-1][2] + added_z;
@@ -399,41 +354,23 @@ int main() {
         // add event properties to output file
         output_file.add_event(event, energy_list[event], position_list[event]);
 
-	}//End of event loop
+    }//End of event loop
 
 	std::cout << "Event generation complete." << std::endl << std::endl;
 	
 	// --------- Calculate hits and times ----------
 	std::cout << "Determining number of photon hits..." << std::endl;
 
-	//Efficiency testing
-	/*
-	std::chrono::steady_clock::time_point t_all_i; std::chrono::steady_clock::time_point t_all_f;
-        std::chrono::steady_clock::time_point t_VUVTime_i; std::chrono::steady_clock::time_point t_VUVTime_f;
-        std::chrono::steady_clock::time_point t_ReflTime_i; std::chrono::steady_clock::time_point t_ReflTime_f;
-        std::chrono::steady_clock::time_point t_VUVHits_i; std::chrono::steady_clock::time_point t_VUVHits_f;
-        std::chrono::steady_clock::time_point t_ReflHits_i; std::chrono::steady_clock::time_point t_ReflHits_f;
-        std::chrono::duration<double> timespan_all (0.);
-        std::chrono::duration<double> timespan_VUV_times (0.);
-        std::chrono::duration<double> timespan_Refl_times (0.);
-        std::chrono::duration<double> timespan_VUV_hits (0.);
-        std::chrono::duration<double> timespan_Refl_hits (0.);
-
-        t_all_i = std::chrono::steady_clock::now();
-*/
-	// loop each event in events list
-	//for(int event = 0; event < parameters::number_events; event++) {
+	//--loop each event in events list
 	for(int event = 0; event < max_events; event++) {
 
-		// output completion %
-        /*if ( (event != 0) && (parameters::number_events >= 10) &&  (event % (parameters::number_events/10) == 0) ) {
-            std::cout << Form("%i0%% Completed...\n", event / (parameters::number_events/10));
-        }*/
+	//--output completion %
         if ( (event != 0) && (max_events >= 10) &&  (event % (max_events/10) == 0) ) {
             std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
         }
 
-        if(event % 2 ==0) { //Alpha event
+	//--Setting scintillation for Alpha-gammas
+        if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
 
         // calculate total scintillation yield from the event
         int number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
@@ -512,7 +449,7 @@ int main() {
 
 	} // end of alpha event
 
-	else { //Gamma event
+	else { //Gamma event or other electron-like event
 		
         // calculate total scintillation yield from the event
         int number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
