@@ -62,8 +62,8 @@ double utility_functions::scintillation_function(const double *t, const double *
 	}
 
 	if(type == 1){ // particle is an alpha
-	  singlet_part = 0.70;
-	  triplet_part = 0.30;
+	  singlet_part = 0.75;
+	  triplet_part = 0.25;
 	}
 
 	double Scintillation = exp(-(time/t_singlet))*singlet_part/t_singlet + exp(-(time/t_triplet))*triplet_part/t_triplet;
