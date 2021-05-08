@@ -9,6 +9,7 @@ class utility_functions {
 
 private:
 	TF1 *fScintillation_function = nullptr;
+        TF1 *fScintillation_function_alpha = nullptr;
 
 public:
 
@@ -24,7 +25,26 @@ public:
 	// scintillation function
 	static double scintillation_function( const double *t, const double *par);
 	void initalise_scintillation_function(const double t_singlet, const double t_triplet, const double scint_time_window, const double particle_type);
+        void initalise_scintillation_function_alpha(const double t_singlet, const double t_triplet, const double scint_time_window, const double particle_type);
 	double get_scintillation_time() { return fScintillation_function->GetRandom(); }
+        double get_scintillation_time_alpha() { return fScintillation_function_alpha->GetRandom(); }
+
+        // Spectrum Function (Beta Decay) /////chrisflynn
+        static double SpectrumFunction(double *x, double *par);
+
+        //Supernova Spectrum
+        static double fsn(double *x, double *par);
+
+
+        // HEP spectrum ////chrisflynn
+        static double fhep(double *x, double *par);
+
+        //Solar spectrum ////chrisflynn
+        static double fso(double *x, double *par);
+
+        //Rn Spectrum ////chrisflynn
+        static double Rn_function(double *x, double *par);
+
 
 };
 
