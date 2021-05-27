@@ -15,7 +15,7 @@
 #include "semi_analytic_hits.h"
 #include "time_parameterisation.h"
 #include "utility_functions.h"
-
+#include "radiological_parameters.h"
 
 // include parameter file
 #include "simulation_parameters.h"
@@ -51,9 +51,13 @@ int main() {
         double added_y;
         double added_z;
 
+	TFile *f_alpha;
+	TH1D *alpha_gamma;
+	if(parameters::gen_alpha_gamma == true) {
         //---Reading in positions of alpha decays from .root
-        TFile *f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
-        TH1D *alpha_gamma = (TH1D*)f_alpha->Get("histo");
+        f_alpha = new TFile("../spectra/real_alpha_positions_363.root");
+        alpha_gamma = (TH1D*)f_alpha->Get("histo");
+	}
 
         int max_events;
         int scint_yield;
@@ -62,15 +66,15 @@ int main() {
 
 	/////////////-------------Setting beta and gamma spectra---------------////////////////////
         double Q_beta_endpoint = 0;    
-        if(parameters::gen_argon == true) {Q_beta_endpoint = parameters::Q_Ar;}
-        if(parameters::gen_Co60B == true) {Q_beta_endpoint = parameters::Q_Co60B;}
-        if(parameters::gen_Ar42 == true) {Q_beta_endpoint = parameters::Q_Ar42;}
-        if(parameters::gen_K42 == true) {Q_beta_endpoint = parameters::Q_K42;}
-        if(parameters::gen_40KB == true) {Q_beta_endpoint = parameters::Q_40KB;}
-        if(parameters::gen_Kr85B1 == true) {Q_beta_endpoint = parameters::Q_Kr85B1;}
-        if(parameters::gen_Kr85B2 == true) {Q_beta_endpoint = parameters::Q_Kr85B2;}
-        if(parameters::gen_Pb214 == true) {Q_beta_endpoint = parameters::Q_Pb214;}
-        if(parameters::gen_Bi214 == true) {Q_beta_endpoint = parameters::Q_Bi214;}
+        if(parameters::gen_argon == true) {Q_beta_endpoint = radiological::Q_Ar;}
+        if(parameters::gen_Co60B == true) {Q_beta_endpoint = radiological::Q_Co60B;}
+        if(parameters::gen_Ar42 == true) {Q_beta_endpoint = radiological::Q_Ar42;}
+        if(parameters::gen_K42 == true) {Q_beta_endpoint = radiological::Q_K42;}
+        if(parameters::gen_40KB == true) {Q_beta_endpoint = radiological::Q_40KB;}
+        if(parameters::gen_Kr85B1 == true) {Q_beta_endpoint = radiological::Q_Kr85B1;}
+        if(parameters::gen_Kr85B2 == true) {Q_beta_endpoint = radiological::Q_Kr85B2;}
+        if(parameters::gen_Pb214 == true) {Q_beta_endpoint = radiological::Q_Pb214;}
+        if(parameters::gen_Bi214 == true) {Q_beta_endpoint = radiological::Q_Bi214;}
 	//---Gammas---// (Could add some smearing to these spectra, but don't currently)
         if(parameters::gen_Co60G1 == true) {parameters::fixed_energy = true; parameters::fixedE = 1.173;}
         else if(parameters::gen_Co60G2 == true) {parameters::fixed_energy = true; parameters::fixedE = 1.332;}
@@ -84,9 +88,9 @@ int main() {
         TF1 *flandau_so = new TF1("flandau_so",utility_functions::fso, 0, 16.56, 1); 
         TF1 *flandau_hep = new TF1("flandau_hep",utility_functions::fhep, 0, 18.78, 1); 
 
-        flandau_sn->SetParameter(0, parameters::Eav);
-        flandau_so->SetParameter(0, parameters::Eav);
-        flandau_hep->SetParameter(0, parameters::Eav);
+        flandau_sn->SetParameter(0, radiological::Eav);
+        flandau_so->SetParameter(0, radiological::Eav);
+        flandau_hep->SetParameter(0, radiological::Eav);
 
         TRandom3 *fGauss = new TRandom3();
 
@@ -105,42 +109,42 @@ int main() {
         }
 	//---Other backgrounds
         if(parameters::gen_argon == true) {
-           fSpectrum->SetParameter(0, parameters::Q_Ar);
+           fSpectrum->SetParameter(0, radiological::Q_Ar);
            max_events = parameters::max_events_Ar;
            scint_yield = parameters::scintillation_yield;
            particle = "electron"; //This isn't used to generate anything, just a label which can be printed
            cout << endl << "Generating " << max_events << ", Ar 39 decays in time window: " << parameters::time_window << " seconds." << endl;
         }
         if(parameters::gen_Co60B == true) {
-           fSpectrum->SetParameter(0, parameters::Q_Co60B);
+           fSpectrum->SetParameter(0, radiological::Q_Co60B);
            max_events = parameters::max_events_Co60B;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Co60 beta decays in time window: " << parameters::time_window << " seconds." << endl;
         }
         if(parameters::gen_Ar42 == true) {
-           fSpectrum->SetParameter(0, parameters::Q_Ar42);
+           fSpectrum->SetParameter(0, radiological::Q_Ar42);
            max_events = parameters::max_events_Ar42;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Ar42 beta decays in time window: " << parameters::time_window << " seconds." << endl;
         }
         if(parameters::gen_40KB == true) {
-           fSpectrum->SetParameter(0, parameters::Q_40KB);
+           fSpectrum->SetParameter(0, radiological::Q_40KB);
            max_events = parameters::max_events_40KB;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", 40K beta decays in time window: " << parameters::time_window << " seconds." << endl;
         }
         if(parameters::gen_Kr85B1 == true) {
-           fSpectrum->SetParameter(0, parameters::Q_Kr85B1);
+           fSpectrum->SetParameter(0, radiological::Q_Kr85B1);
            max_events = parameters::max_events_Kr85B1;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << endl << "Generating " << max_events << ", Kr85B1 beta decays in time window: " << parameters::time_window << " seconds." << endl;
         }
         if(parameters::gen_Kr85B2 == true) {
-           fSpectrum->SetParameter(0, parameters::Q_Kr85B2);
+           fSpectrum->SetParameter(0, radiological::Q_Kr85B2);
            max_events = parameters::max_events_Kr85B2;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
@@ -159,21 +163,21 @@ int main() {
            cout << "\nGenerating " << max_events << ", solar events.\n";
         }
         if(parameters::gen_Pb214 == true){
-           fSpectrum->SetParameter(0, parameters::Q_Pb214);
+           fSpectrum->SetParameter(0, radiological::Q_Pb214);
            max_events = parameters::max_events_Pb214;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << "\nGenerating " << max_events << ", Pb214 events.\n";
         }
         if(parameters::gen_Bi214 == true){
-           fSpectrum->SetParameter(0, parameters::Q_Bi214);
+           fSpectrum->SetParameter(0, radiological::Q_Bi214);
            max_events = parameters::max_events_Bi214;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
            cout << "\nGenerating " << max_events << ", Bi214 events.\n";
         }
         if(parameters::gen_K42 == true){
-           fSpectrum->SetParameter(0, parameters::Q_K42);
+           fSpectrum->SetParameter(0, radiological::Q_K42);
            max_events = parameters::max_events_K42;
            scint_yield = parameters::scintillation_yield;
            particle = "electron";
@@ -265,14 +269,14 @@ int main() {
         if(parameters::supernova == true) {energy = flandau_sn->GetRandom();}   
         if(parameters::solar == true) {energy = flandau_so->GetRandom();}   
         if(parameters::gen_hep == true) {energy = flandau_hep->GetRandom();}
-        if(parameters::gen_Po210 == true) {energy = fGauss->Gaus(parameters::Q_Po210, 0.05);}
-        if(parameters::gen_Rn222 == true) {energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);}
-        if(parameters::gen_Po218 == true) {energy = fGauss->Gaus(parameters::Q_Po218, 0.05);}
-        if(parameters::gen_Po214 == true) {energy = fGauss->Gaus(parameters::Q_Po214, 0.05);}
+        if(parameters::gen_Po210 == true) {energy = fGauss->Gaus(radiological::Q_Po210, 0.05);}
+        if(parameters::gen_Rn222 == true) {energy = fGauss->Gaus(radiological::Q_Rn222, 0.05);}
+        if(parameters::gen_Po218 == true) {energy = fGauss->Gaus(radiological::Q_Po218, 0.05);}
+        if(parameters::gen_Po214 == true) {energy = fGauss->Gaus(radiological::Q_Po214, 0.05);}
 	//--Alpha-gamma energy
 	if(parameters::gen_alpha_gamma == true) {
 	    if(event % 2 ==0) { //Alpha event
-                energy = fGauss->Gaus(parameters::Q_Rn222, 0.05);
+                energy = fGauss->Gaus(radiological::Q_Rn222, 0.05);
 	    }
             else { //Gamma event
 		energy = fGauss->Gaus(15.0, 2.9);
@@ -287,19 +291,19 @@ int main() {
            position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
         }
         else if(parameters::gen_40KB == true || parameters::gen_40KG == true){
-           position_list[event][0] = gRandom->Uniform(parameters::K_x_position_range[0],parameters::K_x_position_range[1]);
-           position_list[event][1] = gRandom->Uniform(parameters::K_y_position_range[0],parameters::K_y_position_range[1]);
-           position_list[event][2] = gRandom->Uniform(parameters::K_z_position_range[0],parameters::K_z_position_range[1]);
+           position_list[event][0] = gRandom->Uniform(radiological::K_x_position_range[0],radiological::K_x_position_range[1]);
+           position_list[event][1] = gRandom->Uniform(radiological::K_y_position_range[0],radiological::K_y_position_range[1]);
+           position_list[event][2] = gRandom->Uniform(radiological::K_z_position_range[0],radiological::K_z_position_range[1]);
         }
         else if(parameters::gen_Co60B == true){
-           position_list[event][0] = gRandom->Uniform(parameters::Co_x_position_range[0],parameters::Co_x_position_range[1]);
-           position_list[event][1] = gRandom->Uniform(parameters::Co_y_position_range[0],parameters::Co_y_position_range[1]);
-           position_list[event][2] = gRandom->Uniform(parameters::Co_z_position_range[0],parameters::Co_z_position_range[1]);
+           position_list[event][0] = gRandom->Uniform(radiological::Co_x_position_range[0],radiological::Co_x_position_range[1]);
+           position_list[event][1] = gRandom->Uniform(radiological::Co_y_position_range[0],radiological::Co_y_position_range[1]);
+           position_list[event][2] = gRandom->Uniform(radiological::Co_z_position_range[0],radiological::Co_z_position_range[1]);
         }
         else if(parameters::gen_Po210 == true){
-           position_list[event][0] = gRandom->Uniform(parameters::Po_x_position_range[0],parameters::Po_x_position_range[1]);
-           position_list[event][1] = gRandom->Uniform(parameters::Po_y_position_range[0],parameters::Po_y_position_range[1]);
-           position_list[event][2] = gRandom->Uniform(parameters::Po_z_position_range[0],parameters::Po_z_position_range[1]);
+           position_list[event][0] = gRandom->Uniform(radiological::Po_x_position_range[0],radiological::Po_x_position_range[1]);
+           position_list[event][1] = gRandom->Uniform(radiological::Po_y_position_range[0],radiological::Po_y_position_range[1]);
+           position_list[event][2] = gRandom->Uniform(radiological::Po_z_position_range[0],radiological::Po_z_position_range[1]);
         }
         else {
            position_list[event][0] = gRandom->Uniform(parameters::entire_x_position_range[0],parameters::entire_x_position_range[1]);
@@ -325,23 +329,23 @@ int main() {
             }
 	}
                 //These statements are to stop gammas exiting through the edges of the TPC
-                if (position_list[event][0] > 363.0) {
-                    position_list[event][0] = 363.0;
+                if (position_list[event][0] > parameters::max_x) {
+                    position_list[event][0] = parameters::max_x;
                 }
-                if (position_list[event][0] < 1.0) {
-                    position_list[event][0] = 1.0;
+                if (position_list[event][0] < parameters::min_x) {
+                    position_list[event][0] = parameters::min_x;
                 }
-                if (position_list[event][1] > 600.0) {
-                    position_list[event][1] = 600.0;
+                if (position_list[event][1] > parameters::max_y) {
+                    position_list[event][1] = parameters::max_y;
                 }
-                if (position_list[event][1] < -600.0) {
-                    position_list[event][1] = -600.0;
+                if (position_list[event][1] < parameters::min_y) {
+                    position_list[event][1] = parameters::min_y;
                 }
-                if (position_list[event][2] > 1400.0) {
-                    position_list[event][2] = 1400.0;
+                if (position_list[event][2] > parameters::max_z) {
+                    position_list[event][2] = parameters::max_z;
                 }
-                if (position_list[event][2] < 0.0) {
-                    position_list[event][2] = 0.0;
+                if (position_list[event][2] < parameters::min_z) {
+                    position_list[event][2] = parameters::min_z;
                 }
 
 
@@ -369,12 +373,17 @@ int main() {
             std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
         }
 
+	int number_photons;
 	//--Setting scintillation for Alpha-gammas
         if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
-
         // calculate total scintillation yield from the event
-        int number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+        number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+	}
 
+	else { 
+	number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+	}
+	
         // loop over each optical channel
         for(int op_channel = 0; op_channel < number_opdets; op_channel++) {
 
@@ -423,9 +432,15 @@ int main() {
 
                         std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
 
+			double total_time;
                         // total times
                         for(auto& x: transport_time_vuv) {
-                                double total_time = (x*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+				if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
+                                total_time = (x*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+				}
+				else {
+				total_time = (x*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
+			        }
                                 total_time_vuv.push_back(total_time);
                         }
                 }
@@ -433,9 +448,16 @@ int main() {
                 if (num_VIS > 0 && parameters::include_reflected) {
                         // transport times
                         std::vector<double> transport_time_vis = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS);
+
+			double total_time;
                         // total times
                         for(auto& y: transport_time_vis) {
-                                double total_time = (y*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+				if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
+                                total_time = (y*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
+				}
+				else {
+				total_time = (y*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
+				}
                                 total_time_vis.push_back(total_time);
                         }
                 }
@@ -446,91 +468,12 @@ int main() {
             else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
 
         } // end of optical channel loop
-
-	} // end of alpha event
-
-	else { //Gamma event or other electron-like event
-		
-        // calculate total scintillation yield from the event
-        int number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
-
-        // loop over each optical channel
-        for(int op_channel = 0; op_channel < number_opdets; op_channel++) { 
-
-        	// get optical detector type - rectangular or disk aperture
-        	int op_channel_type = opdet_type[op_channel][1];
-
-        	// get scintillation point and detection channel coordinates (in cm)
-            TVector3 ScintPoint(position_list[event][0],position_list[event][1],position_list[event][2]);
-            TVector3 OpDetPoint(opdet_position[op_channel][0],opdet_position[op_channel][1],opdet_position[op_channel][2]);
-
-            // determine number of hits on optical channel via semi-analytic model:
-            // VUV
-            int num_VUV = 0;
-            // incident photons
-            int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
-            // apply additional factors QE etc.            
-            for(int i = 0; i < num_VUV_geo; i++) {
-                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only)) num_VUV++;   
-            }
-            // Visible
-            int num_VIS = 0;
-            if (parameters::include_reflected) {
-            	// incident photons
-            	int num_VIS_geo = 0;                
-                num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model        
-                // apply additional factors QE etc.
-            	for(int j = 0; j < num_VIS_geo; j++) {
-                	if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only)) num_VIS++;
-                }
-            }
-
-            // if no photons from this event for this optical channel, go to the next channel.
-            if(num_VUV+num_VIS == 0) { continue; } // forces the next iteration
-
-            // calculate timings
-            std::vector<double> total_time_vuv; total_time_vuv.reserve(num_VUV);
-            std::vector<double> total_time_vis; total_time_vis.reserve(num_VIS);
-            if (parameters::include_timings){
-            	// VUV            	
-            	if(num_VUV > 0) {
-            		// transport times
-            		double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
-            		double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance_to_pmt;
-  					double theta = acos(cosine)*180./3.14159;
-  					int angle_bin = theta/45;	// 45 deg bins	  
-            		
-            		std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
-            		
-            		// total times
-            		for(auto& x: transport_time_vuv) {
-            			double total_time = (x*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
-            			total_time_vuv.push_back(total_time);
-            		}
-            	}
-            	// VIS
-            	if (num_VIS > 0 && parameters::include_reflected) {
-            		// transport times
-            		std::vector<double> transport_time_vis = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS);
-            		// total times
-            		for(auto& y: transport_time_vis) {
-            			double total_time = (y*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
-            			total_time_vis.push_back(total_time);
-            		}
-            	}
-            }
-
-            // fill data trees for each photon detected
-            if (parameters::include_timings) output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint, total_time_vuv, total_time_vis);
-            else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
-
-        } // end of optical channel loop
-
-        } //end of gamma event
-
+	
 	} // end of event loop
 
+	if(parameters::gen_alpha_gamma == true) {
 	f_alpha->Close();
+	}
 	// write output root file
 	output_file.write_output_file();
 
