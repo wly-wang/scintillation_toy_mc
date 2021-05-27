@@ -29,7 +29,7 @@ semi_analytic_hits::semi_analytic_hits() {
 }
 
 // VUV hits calculation
-int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
+int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type, const int &scintillation_type) {
   
   // distance and angle between ScintPoint and OpDetPoint
   double distance = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2) + pow(ScintPoint[1] - OpDetPoint[1],2) + pow(ScintPoint[2] - OpDetPoint[2],2));
@@ -77,19 +77,34 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
   int j = (theta/delta_angle);
   // distance from center for border corrections
   double r_distance = sqrt( pow(ScintPoint[1] - y_foils, 2) + pow(ScintPoint[2] - z_foils, 2)); 
-  // GH parameters
+  // identify GH parameters and border corrections by optical detector type and scintillation type
   double pars_ini[4] = {0,0,0,0};
   double s1, s2, s3;  
-  // determine initial parameters and border corrections by optical detector type
+  // determine initial parameters and border corrections by optical detector type and scintillation type
   // flat PDs
   if (optical_detector_type == 0 || optical_detector_type == 1){
-    pars_ini[0] = fGHVUVPars_flat[0][j];
-    pars_ini[1] = fGHVUVPars_flat[1][j];
-    pars_ini[2] = fGHVUVPars_flat[2][j];
-    pars_ini[3] = fGHVUVPars_flat[3][j];
-    s1 = interpolate( angulo_flat, slopes1_flat, theta, true);
-    s2 = interpolate( angulo_flat, slopes2_flat, theta, true);
-    s3 = interpolate( angulo_flat, slopes3_flat, theta, true);
+    if (scintillation_type == 0) { // argon
+      pars_ini[0] = fGHVUVPars_flat_argon[0][j];
+      pars_ini[1] = fGHVUVPars_flat_argon[1][j];
+      pars_ini[2] = fGHVUVPars_flat_argon[2][j];
+      pars_ini[3] = fGHVUVPars_flat_argon[3][j];
+      s1 = interpolate( angulo, slopes1_flat_argon, theta, true);
+      s2 = interpolate( angulo, slopes2_flat_argon, theta, true);
+      s3 = interpolate( angulo, slopes3_flat_argon, theta, true);
+    }
+    else if (scintillation_type == 1) { // xenon
+      pars_ini[0] = fGHVUVPars_flat_xenon[0][j];
+      pars_ini[1] = fGHVUVPars_flat_xenon[1][j];
+      pars_ini[2] = fGHVUVPars_flat_xenon[2][j];
+      pars_ini[3] = fGHVUVPars_flat_xenon[3][j];
+      s1 = interpolate( angulo, slopes1_flat_xenon, theta, true);
+      s2 = interpolate( angulo, slopes2_flat_xenon, theta, true);
+      s3 = interpolate( angulo, slopes3_flat_xenon, theta, true);
+    }
+    else {
+      std::cout << "Error: Invalid scintillation type configuration." << endl;
+      exit(1);
+    }
   }
   // dome PDs
   else if (optical_detector_type == 2) {
@@ -116,7 +131,7 @@ int semi_analytic_hits::VUVHits(const int &Nphotons_created, const TVector3 &Sci
 }
 
 // Visible hits calculation
-int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type) {
+int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type, const int &scintillation_type) {
   
   // 1). calculate total number of hits of VUV photons on reflective foils via solid angle + Gaisser-Hillas corrections:
 
@@ -135,7 +150,6 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   // calculate distance and angle between ScintPoint and hotspot
   // vast majority of hits in hotspot region directly infront of scintpoint,therefore consider attenuation for this distance and on axis GH instead of for the centre coordinate
   double distance_cathode = std::abs(x_foils - ScintPoint[0]); 
-
   double cosine_cathode = 1;
   double theta_cathode = 0;
 
@@ -150,16 +164,30 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   // offset angle bin
   int j = (theta_cathode/delta_angle);  
   // correction
-  double pars_ini[4] = {fGHVUVPars_flat[0][j], fGHVUVPars_flat[1][j], fGHVUVPars_flat[2][j], fGHVUVPars_flat[3][j]};
-  
-  double s1 = interpolate( angulo_flat, slopes1_flat, theta_cathode, true);
-  double s2 = interpolate( angulo_flat, slopes2_flat, theta_cathode, true);
-  double s3 = interpolate( angulo_flat, slopes3_flat, theta_cathode, true);
-
-  pars_ini[0] = pars_ini[0] + s1 * r_distance;
-  pars_ini[1] = pars_ini[1] + s2 * r_distance;
-  pars_ini[2] = pars_ini[2] + s3 * r_distance;
-  pars_ini[3] = pars_ini[3];
+  double pars_ini[4] = {0,0,0,0};
+  double s1, s2, s3;
+  if (scintillation_type == 0) { // argon
+      pars_ini[0] = fGHVUVPars_flat_argon[0][j];
+      pars_ini[1] = fGHVUVPars_flat_argon[1][j];
+      pars_ini[2] = fGHVUVPars_flat_argon[2][j];
+      pars_ini[3] = fGHVUVPars_flat_argon[3][j];
+      s1 = interpolate( angulo, slopes1_flat_argon, theta_cathode, true);
+      s2 = interpolate( angulo, slopes2_flat_argon, theta_cathode, true);
+      s3 = interpolate( angulo, slopes3_flat_argon, theta_cathode, true);
+  }
+  else if (scintillation_type == 1) { // xenon
+    pars_ini[0] = fGHVUVPars_flat_xenon[0][j];
+    pars_ini[1] = fGHVUVPars_flat_xenon[1][j];
+    pars_ini[2] = fGHVUVPars_flat_xenon[2][j];
+    pars_ini[3] = fGHVUVPars_flat_xenon[3][j];
+    s1 = interpolate( angulo, slopes1_flat_xenon, theta_cathode, true);
+    s2 = interpolate( angulo, slopes2_flat_xenon, theta_cathode, true);
+    s3 = interpolate( angulo, slopes3_flat_xenon, theta_cathode, true);
+  }
+  else {
+    std::cout << "Error: Invalid scintillation type configuration." << endl;
+    exit(1);
+  }
 
   double GH_correction = GaisserHillas(distance_cathode, pars_ini);
 
@@ -188,7 +216,6 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
     acc detPoint; 
     detPoint.ax = OpDetPoint[0]; detPoint.ay = OpDetPoint[1]; detPoint.az = OpDetPoint[2];  // centre coordinates of optical detector
     detPoint.w = y_dimension_detector; detPoint.h = z_dimension_detector; // width and height in cm of arapuca active window
-
     
     // get hotspot coordinates relative to detpoint
     TVector3 emission_relative = hotspot - OpDetPoint;
@@ -221,13 +248,28 @@ int semi_analytic_hits::VisHits(const int &Nphotons_created, const TVector3 &Sci
   double border_correction;
   int k = (theta_vis/delta_angle);
   if (optical_detector_type == 0 || optical_detector_type == 1) {
-    // interpolate in d_c for each r bin
-    std::vector<double> interp_vals(fVISPars_flat[k].size(), 0.0);
-    for (int i = 0; i < fVISPars_flat[k].size(); i++){
-      interp_vals[i] = interpolate(vDistances_x_flat, fVISPars_flat[k][i], std::abs(plane_depth - ScintPoint[0]), false);
+    if (scintillation_type == 0) { // argon
+      // interpolate in d_c for each r bin
+      std::vector<double> interp_vals(fVISPars_flat_argon[k].size(), 0.0);
+      for (int i = 0; i < fVISPars_flat_argon[k].size(); i++){
+        interp_vals[i] = interpolate(vDistances_x_flat_argon, fVISPars_flat_argon[k][i], std::abs(plane_depth - ScintPoint[0]), false);
+      }
+      // interpolate in r
+      border_correction = interpolate(vDistances_r_flat_argon, interp_vals, r_distance, false);
     }
-    // interpolate in r
-    border_correction = interpolate(vDistances_r_flat, interp_vals, r_distance, false);
+    else if (scintillation_type == 1) { // xenon
+      // interpolate in d_c for each r bin
+      std::vector<double> interp_vals(fVISPars_flat_xenon[k].size(), 0.0);
+      for (int i = 0; i < fVISPars_flat_xenon[k].size(); i++){
+        interp_vals[i] = interpolate(vDistances_x_flat_xenon, fVISPars_flat_xenon[k][i], std::abs(plane_depth - ScintPoint[0]), false);
+      }
+      // interpolate in r
+      border_correction = interpolate(vDistances_r_flat_xenon, interp_vals, r_distance, false);
+    }
+    else {
+      std::cout << "Error: Invalid scintillation type configuration." << endl;
+      exit(1);
+    }    
   }
   else if (optical_detector_type == 2) {
     std::cout << "Error: Corrections not yet implementation for dome detectors, not required in DUNE-SP." << endl;

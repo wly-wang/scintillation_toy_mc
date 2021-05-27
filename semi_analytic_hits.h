@@ -48,34 +48,30 @@ private:
 	// Note: wires are now incorporated into the parameterisations, no longer need to add scaling factor
 	
 	// DUNE-SP Gaisser-Hillas
+	// angle bins
+	std::vector<double> angulo = {5, 15, 25, 35, 45, 55, 65, 75, 85};
+	const double delta_angle = 10.;
+
 	// Argon, RS = 99.9cm, flat PDs (Arapucas/Supercells)
-	const double fGHVUVPars_flat[4][9] = { {1.23286, 1.20491, 1.1597, 1.08148, 0.986607, 0.868075, 0.725637, 0.633551, 0.469717},
+	const double fGHVUVPars_flat_argon[4][9] = { {1.23286, 1.20491, 1.1597, 1.08148, 0.986607, 0.868075, 0.725637, 0.633551, 0.469717},
   								{150.325, 150.109, 156.294, 169.271, 179.642, 212.9, 232.173, 226.557, 215.166},
   								{19.0558, 18.8478, 18.8757, 18.7149, 50.8662, 49.2247, 57.6717, 157.92, 172.494},
   								{-3000, -3000, -3000, -3000, -1000, -1000, -1000, -100, -100} };
-	std::vector<double> angulo_flat = {5, 15, 25, 35, 45, 55, 65, 75, 85};
-	std::vector<double> slopes1_flat = {-9.63855e-05, -6.82604e-05, -9.63478e-05, -0.000121181, -0.000126611, -0.000115481, -8.61492e-05, -0.000112594, -7.80935e-05};
-	std::vector<double> slopes2_flat = {-0.0662469, -0.0504497, -0.0596321, -0.0418021, -0.0342462, -0.0531668, -0.0522639, -0.0578887, -0.0591081};
-	std::vector<double> slopes3_flat = {-0.00593207, -0.00672713, -0.0020843, -0.00216374, 0.00901291, 0.00385402, 0.0066081, 0.0341547, 0.0446519};
+	std::vector<double> slopes1_flat_argon = {-9.63855e-05, -6.82604e-05, -9.63478e-05, -0.000121181, -0.000126611, -0.000115481, -8.61492e-05, -0.000112594, -7.80935e-05};
+	std::vector<double> slopes2_flat_argon = {-0.0662469, -0.0504497, -0.0596321, -0.0418021, -0.0342462, -0.0531668, -0.0522639, -0.0578887, -0.0591081};
+	std::vector<double> slopes3_flat_argon = {-0.00593207, -0.00672713, -0.0020843, -0.00216374, 0.00901291, 0.00385402, 0.0066081, 0.0341547, 0.0446519};
     
-    // Xenon, flat PDs (Arapucas/Supercells)
-	/*							  
-    const double fGHVUVPars_flat[4][9] = { {0.959653, 0.92975, 0.874812, 0.790038, 0.685581, 0.566253, 0.433698, 0.31073, 0.197959},
+    // Xenon, flat PDs (Arapucas/Supercells)							  
+    const double fGHVUVPars_flat_xenon[4][9] = { {0.959653, 0.92975, 0.874812, 0.790038, 0.685581, 0.566253, 0.433698, 0.31073, 0.197959},
   								{94.2397, 94.5496, 104.245, 139.412, 189.763, 192.723, 340.598, 501.523, 503.954},
   								{385.308, 413.922, 405.968, 371.839, 330.268, 484.33, 513.097, 512.926, 253.092},
   								{-400, -400, -400, -400, -400, -400, -400, -400, -400} };
-	std::vector<double> angulo_flat = {5, 15, 25, 35, 45, 55, 65, 75, 85};
-	std::vector<double> slopes1_flat = {0.000212425, 0.000200659, 0.000179874, 0.000165088, 0.00015168, 0.000122913, 8.94813e-05, 3.98645e-05, 1.24325e-13};
-	std::vector<double> slopes2_flat = {0.151348, 0.168286, 0.153929, 0.12419, 0.0834517, 0.0955464, -0.0175567, -0.112032, -1.98752e-10};
-	std::vector<double> slopes3_flat = {-0.114771, -0.19272, -0.182644, -0.130611, -0.115369, -0.279817, -0.276752, -0.294378, 0.0783223};
-
-	*/
-	
-	// bin size of the offset angle used in the parametrization in degrees
-	const double delta_angle = 10.;
+	std::vector<double> slopes1_flat_xenon = {0.000212425, 0.000200659, 0.000179874, 0.000165088, 0.00015168, 0.000122913, 8.94813e-05, 3.98645e-05, 1.24325e-13};
+	std::vector<double> slopes2_flat_xenon = {0.151348, 0.168286, 0.153929, 0.12419, 0.0834517, 0.0955464, -0.0175567, -0.112032, -1.98752e-10};
+	std::vector<double> slopes3_flat_xenon = {-0.114771, -0.19272, -0.182644, -0.130611, -0.115369, -0.279817, -0.276752, -0.294378, 0.0783223};
 	
 	// LAr absorption length in cm
-	const double L_abs = 2000.;
+	const double L_abs = 2000.;	// 20 m
 
 	// *************************************************************************************************
 	//                    NUMBER OF VIS HITS PARAMETRIZATION
@@ -100,10 +96,10 @@ private:
 
 	// DUNE-SP corrections
 	// Argon, flat PDs (Arapucas/Supercells)
-	const std::vector<double> vDistances_x_flat = {3, 13, 38, 63, 88, 113, 138, 163, 188, 213, 238, 263, 288, 313, 338, 353};			// cm	[16]
-	const std::vector<double> vDistances_r_flat = {54.1115, 154.253, 269.706, 367.262, 496.739, 605.581, 693.216, 782.765, 862.208};		// cm	[9]
+	const std::vector<double> vDistances_x_flat_argon = {3, 13, 38, 63, 88, 113, 138, 163, 188, 213, 238, 263, 288, 313, 338, 353};			// cm	[16]
+	const std::vector<double> vDistances_r_flat_argon = {54.1115, 154.253, 269.706, 367.262, 496.739, 605.581, 693.216, 782.765, 862.208};		// cm	[9]
 
-	const std::vector<std::vector<std::vector<double>>> fVISPars_flat = { 
+	const std::vector<std::vector<std::vector<double>>> fVISPars_flat_argon = { 
 		{ {1.67995, 1.5023, 1.20657, 1.02106, 0.882746, 0.776639, 0.695785, 0.629938, 0.582714, 0.545081, 0.515464, 0.493708, 0.472181, 0.45963, 0.439441, 0.419622},
 		  {1.68963, 1.51982, 1.23126, 1.03816, 0.900409, 0.796292, 0.713189, 0.649865, 0.602912, 0.564819, 0.539057, 0.517199, 0.505427, 0.492089, 0.481653, 0.449229},
 		  {1.73304, 1.55607, 1.26007, 1.07054, 0.934781, 0.832277, 0.759501, 0.704314, 0.658422, 0.627825, 0.606923, 0.591168, 0.584167, 0.580226, 0.563891, 0.529764},
@@ -197,11 +193,10 @@ private:
 	};
 
 	// Xenon, flat PDs (Arapucas/Supercells)
-	/*
-	const std::vector<double> vDistances_x_flat = {3, 13, 38, 63, 88, 113, 138, 163, 188, 213, 238, 263, 288, 313, 338, 353};			// cm	[16]
-	const std::vector<double> vDistances_r_flat = {54.1115, 154.253, 269.706, 367.262, 496.739, 605.581, 693.216, 782.765, 862.208};		// cm	[9]
+	const std::vector<double> vDistances_x_flat_xenon = {3, 13, 38, 63, 88, 113, 138, 163, 188, 213, 238, 263, 288, 313, 338, 353};			// cm	[16]
+	const std::vector<double> vDistances_r_flat_xenon = {54.1115, 154.253, 269.706, 367.262, 496.739, 605.581, 693.216, 782.765, 862.208};		// cm	[9]
 
-	const std::vector<std::vector<std::vector<double>>> fVISPars_flat = { 
+	const std::vector<std::vector<std::vector<double>>> fVISPars_flat_xenon = { 
 		{ {1.42292, 1.31942, 1.14314, 1.03354, 0.954893, 0.895668, 0.850742, 0.813135, 0.784575, 0.769604, 0.758446, 0.747137, 0.748827, 0.763408, 0.776546, 0.769917},
 		  {1.41836, 1.32156, 1.15245, 1.03549, 0.955398, 0.893329, 0.844977, 0.803317, 0.780003, 0.762924, 0.754932, 0.749316, 0.753423, 0.764773, 0.775107, 0.73847},
 		  {1.43064, 1.32918, 1.15538, 1.04562, 0.957868, 0.902, 0.858058, 0.82298, 0.798712, 0.783286, 0.772047, 0.764398, 0.775728, 0.790624, 0.797297, 0.75866},
@@ -293,7 +288,7 @@ private:
 		  {0.986332, 1.04235, 1.18522, 1.29253, 1.36492, 1.43449, 1.4859, 1.53936, 1.59273, 1.64912, 1.70134, 1.7577, 1.81235, 1.86855, 1.89174, 1.80892}
 		}
 	};
-*/		
+		
 	
 
 public:	
@@ -304,8 +299,8 @@ public:
 	~semi_analytic_hits(){};
 
 	// hits calculating functions
-	int VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
-	int VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type);
+	int VUVHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type, const int &scintillation_type);
+	int VisHits(const int &Nphotons_created, const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &optical_detector_type, const int &scintillation_type);
 
 	// gaisser-hillas function
 	static Double_t GaisserHillas(double x, double *par);
