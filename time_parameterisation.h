@@ -1,7 +1,7 @@
 #ifndef TIMEPARAM_H
 #define TIMEPARAM_H
 
-// class containing information required for VUV and visible timings parameterisation in SBND
+// class containing information required for VUV and visible timings parameterisation
 /*
 VUV:
    	landau + exponential parameterisation of VUV photon arrival times
@@ -68,12 +68,18 @@ private:
 		{0, 0.00276789, 0.0362807, 0.081067, 0.111523, 0.106485, 0.123852, 0.144239, 0.168534, 0.201111, 0.234443, 0.269284, 0.300041, 0.320541, 0.342403, 0.356125},
 		{0, 0.0242526, 0.086063, 0.101552, 0.134787, 0.171863, 0.152519, 0.203461, 0.224872, 0.279135, 0.304123, 0.317034, 0.341433, 0.360053, 0.382877, 0.391287}
 	};
-	// VUV group velocity
-	const double vuv_vgroup_mean = 13.5;	//cm/ns
-	const double vuv_vgroup_max = 18.;		//cm/ns
+
 	// Distance from "Landau + Expo" -> "Single Landau" model
 	const double inflexion_point_distance = 350.; //cm
 
+	// VUV group velocity
+	// Argon
+	const double vuv_vgroup_mean = 13.5;	//cm/ns
+	const double vuv_vgroup_max = 18.;		//cm/ns
+	// Xenon -- Update with correct values
+	const double vuv_vgroup_mean_Xe = 20.0;	//cm/ns
+	const double vuv_vgroup_max_Xe = 20.0;	//cm/ns
+	
 	// *************************************************************************************************
 	// Definition of the parameters for visible timings calculation, DUNE-SP, RS_vuv = 99.9cm, 10 degree bins
 	// *************************************************************************************************
@@ -296,10 +302,12 @@ public:
     // VUV arrival times calculation function
     // returns an arrival time for each photon randomly drawn from the pre-sampled parameterisations 
     std::vector<double> getVUVTime(const double &distance, const int &angle_bin, const int &number_photons);
+    std::vector<double> getVUVTimeXe(const double &distance, const int &number_photons);
 
     // VIS arrival times calculation function
     // returns an arrival time for each photon randomly drawn from the pre-sampled VUV parameterisations and smeared to approximate visible light distribution
     std::vector<double> getVisTime(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons);
+    std::vector<double> getVisTimeXe(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons);
 
     double getVUVmin(const int &index, const int &angle_bin);
 };

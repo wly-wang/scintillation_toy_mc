@@ -6,11 +6,28 @@ namespace parameters {
 	// output file
 	const char *output_file_name = "testing_xenon.root";
 
+
+    ///-------------------------------------
+    //--------Simulation Settings-----------
+    ///-------------------------------------
+    // Xenon doping
+    const bool simulate_xenon = true;   // enables xenon doping, false = pure argon
+
+    // WLS Reflective foils
+    const bool include_reflected = false; // enables WLS relfective foils on the cathode (visible light)
+
+    // Timings
+    const bool include_timings = true;   // enables timings (emission and transport)  
+
+
     ///-------------------------------------
     //--------WHAT events to generate?------
     ///-------------------------------------
     bool fixed_energy = true; //If gamma activity this will be set to true in the analyze_light.cpp
     double fixedE = 15.0; //Set to -1.0 to check if fixed value has been correctly assigned
+    
+    const double particle_type = 0;   // ionising particle type: 0 - electron, 1 - alpha
+
     bool supernova = false;
     bool solar = false;
     bool gen_hep = false;
@@ -114,16 +131,9 @@ namespace parameters {
     const double max_z = 1400.0;
     const double min_z = 0.0;
 
-    // xenon doping
-    const bool simulate_xenon = true;   // enables xenon doping, default is pure argon
-
-	// timings
-	const bool include_timings = false;
-	const double timing_discretisation_step_size = 1.0;	// cm
-
-	// visible light (WLS reflective foils)
-	const bool include_reflected = true;
-
+    // timing parametersiation properties
+    const double timing_discretisation_step_size = 1.0; // cm
+    
 	// photon detection system properties
 	const double quantum_efficiency = 0.035;	   // arapuca QE
 	const double wireplane_factor = 1.0;           // included in parameterisations	
@@ -136,33 +146,33 @@ namespace parameters {
     const double opdet_fraction_both = 1.0 - opdet_fraction_vuv_only - opdet_fraction_visible_only;
  
     // cathode foils/TPB coverage
-	const double cathode_tpb_frac = 0.8;		
-
-
-    const double particle_type = 0;         // ionising particle: 0 - electron, 1 - alpha
+	const double cathode_tpb_frac = 0.8;
 
 	// scintillation properties
 	const int scintillation_yield = 24000; 		// 24000 photons/MeV at 500 V/m
-    const int scint_yield_alpha = 16800;        // SY of alpha particles at 500 V/cm - from larsoft   
-
+    const int scint_yield_alpha = 16800;        // SY of alpha particles at 500 V/cm - from larsoft  
 
     // scintillation timing properties
+    const double scint_time_window = 0.00001;   // 10 us
+    // argon
+    // timing
+    const double t_singlet = 0.000000006;       // 6ns 
+    const double t_triplet = 0.0000015;         // 1.5 us
     // prompt/late ratio
-    // election
+    // electron-like
     const double singlet_fraction_electron = 0.30;
     const double triplet_fraction_electron = 0.70;
     // alpha
     const double singlet_fraction_alpha = 0.75;
-    const double triplet_fraction_alpha = 0.25;        
-
-    // argon timing
-	const double t_singlet = 0.000000006; 		// 6ns 
-	const double t_triplet = 0.0000015; 		// 1.5 us
+    const double triplet_fraction_alpha = 0.25;   
 	
-    // xenon timing
-
-    const double scint_time_window = 0.00001; 	// 10 us
-	
-    
+    // xenon -- Aprile, Doke https://arxiv.org/abs/0910.4956
+    // timing
+    const double t_singlet_Xe = 0.0000000042;      // 4.2 ns 
+    const double t_triplet_Xe = 0.000000022;       // 22 ns
+    // prompt/late ratio
+    // minimal dependence on particle type, approximate as single value
+    const double singlet_fraction_Xe = 0.30;
+    const double triplet_fraction_Xe = 0.70;    
 		
 }

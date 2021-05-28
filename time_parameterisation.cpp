@@ -34,8 +34,7 @@ time_parameterisation::time_parameterisation(const double &size): step_size{size
 
 // parameterisation generation function
 void time_parameterisation::generateparam(const int &index, const int &angle_bin) {
-    gRandom->SetSeed(0);
-
+    
     // get distance 
     double distance_in_cm = (index * step_size) + 25;
     
@@ -116,7 +115,7 @@ void time_parameterisation::generateparam(const int &index, const int &angle_bin
 }
 
 // VUV arrival times calculation function
-vector<double> time_parameterisation::getVUVTime(const double &distance, const int &angle_bin, const int &number_photons) {
+std::vector<double> time_parameterisation::getVUVTime(const double &distance, const int &angle_bin, const int &number_photons) {
     
     // pre-allocate memory
     std::vector<double> arrival_time_distrb;
@@ -147,8 +146,28 @@ vector<double> time_parameterisation::getVUVTime(const double &distance, const i
     return arrival_time_distrb;
 }
 
+// Xenon direct light arrival times calculation, pure geometric approximation
+std::vector<double> time_parameterisation::getVUVTimeXe(const double &distance, const int &number_photons) {
+
+    // Time correction is just a shift
+    double t_direct_mean = distance/vuv_vgroup_mean_Xe;
+    double t_direct_min = distance/vuv_vgroup_max_Xe;
+
+    // pre-allocate memory
+    std::vector<double> arrival_time_distrb;
+    arrival_time_distrb.clear();
+    arrival_time_distrb.reserve(number_photons);
+
+    // create vector of times
+    for (int i = 0; i < number_photons; i++){
+        arrival_time_distrb.push_back(t_direct_min);
+    }
+
+    return arrival_time_distrb;
+}
+
 // vis arrival times calculation function
-vector<double> time_parameterisation::getVisTime(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons) {
+std::vector<double> time_parameterisation::getVisTime(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons) {
     
     // *************************************************************************************************
     // Calculation of earliest arrival times and corresponding unsmeared distribution
@@ -259,6 +278,29 @@ vector<double> time_parameterisation::getVisTime(const TVector3 &ScintPoint, con
         transport_time_vis[i] = arrival_time_smeared;
     }  
     
+    return transport_time_vis;
+}
+
+// Xenon reflected light arrival times calculation, pure geometric approximation
+std::vector<double> time_parameterisation::getVisTimeXe(const TVector3 &ScintPoint, const TVector3 &OpDetPoint, const int &number_photons) {
+
+    // bounce_point is point on wall where TPB is activated most intensely by the scintillation
+    TVector3 bounce_point(cathode_plane_depth,ScintPoint[1],ScintPoint[2]);
+
+    // calculate distance travelled by VUV light and by vis light
+    double VUVdist = (bounce_point-ScintPoint).Mag();
+    double Visdist = (OpDetPoint-bounce_point).Mag();
+
+    // calculate times taken by each part    
+    vector<double> VUVTimes = getVUVTimeXe(VUVdist, number_photons);
+    vector<double> ReflTimes(number_photons, Visdist/vis_vmean);
+
+    // sum parts to get total transport times times                    
+    vector<double> transport_time_vis(number_photons, 0.0);
+    for (int i=0; i<number_photons; i++) {
+        transport_time_vis[i] = VUVTimes[i] + ReflTimes[i];
+    }
+
     return transport_time_vis;
 }
 
