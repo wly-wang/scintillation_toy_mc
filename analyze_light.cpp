@@ -4,9 +4,9 @@
 #include<iostream>
 #include<fstream>
 #include<chrono>
-#include <sstream>//necessary?
-#include <vector>//necessary?
-#include <algorithm>//necessary?
+#include <sstream>
+#include <vector>
+#include <algorithm>
 #include "TH1.h"
 #include "TRandom.h"
 #include "TVector3.h"
@@ -36,8 +36,10 @@ int main() {
 
 	// -------- Initialise utility/energy spectrum class ---------
 	utility_functions utility;
-	utility.initalise_scintillation_function(parameters::t_singlet, parameters::t_triplet, parameters::scint_time_window, parameters::particle_type);
-        utility.initalise_scintillation_function_alpha(parameters::t_singlet, parameters::t_triplet, parameters::scint_time_window, 1); //added to allow for alpha and gammas in same .root
+	utility.initalise_scintillation_functions_argon(parameters::t_singlet, parameters::t_triplet, parameters::singlet_fraction_electron, parameters::triplet_fraction_electron,
+                                                  parameters::singlet_fraction_alpha, parameters::triplet_fraction_alpha, parameters::scint_time_window);
+  utility.initalise_scintillation_functions_xenon(parameters::t_singlet_Xe, parameters::t_triplet_Xe, parameters::singlet_fraction_Xe, parameters::triplet_fraction_Xe,
+                                                  parameters::scint_time_window);
 
 	// ------- Read photon detector positions and types --------
 	std::vector<std::vector<int>> opdet_type;
@@ -286,9 +288,9 @@ int main() {
 
         //--Position of event
         if(parameters::fixed_energy == true || parameters::gen_argon == true || parameters::gen_Ar42 == true || parameters::gen_K42 == true || parameters::gen_Bi214 == true || parameters::gen_Pb214 == true || parameters::gen_Kr85B1 == true || parameters::gen_Kr85B2 == true || parameters::supernova == true || parameters::solar == true || parameters::gen_hep == true || parameters::gen_Kr85G1 == true || parameters::gen_Kr85G2 == true){
-           position_list[event][0] = gRandom->Uniform(parameters::entire_x_position_range[0],parameters::entire_x_position_range[1]);
-           position_list[event][1] = gRandom->Uniform(parameters::entire_y_position_range[0],parameters::entire_y_position_range[1]);
-           position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
+           position_list[event][0] = gRandom->Uniform(parameters::x_position_range[0],parameters::x_position_range[1]);
+           position_list[event][1] = gRandom->Uniform(parameters::y_position_range[0],parameters::y_position_range[1]);
+           position_list[event][2] = gRandom->Uniform(parameters::z_position_range[0],parameters::z_position_range[1]);
         }
         else if(parameters::gen_40KB == true || parameters::gen_40KG == true){
            position_list[event][0] = gRandom->Uniform(radiological::K_x_position_range[0],radiological::K_x_position_range[1]);
@@ -306,17 +308,17 @@ int main() {
            position_list[event][2] = gRandom->Uniform(radiological::Po_z_position_range[0],radiological::Po_z_position_range[1]);
         }
         else {
-           position_list[event][0] = gRandom->Uniform(parameters::entire_x_position_range[0],parameters::entire_x_position_range[1]);
-           position_list[event][1] = gRandom->Uniform(parameters::entire_y_position_range[0],parameters::entire_y_position_range[1]);
-           position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
+           position_list[event][0] = gRandom->Uniform(parameters::x_position_range[0],parameters::x_position_range[1]);
+           position_list[event][1] = gRandom->Uniform(parameters::y_position_range[0],parameters::y_position_range[1]);
+           position_list[event][2] = gRandom->Uniform(parameters::z_position_range[0],parameters::z_position_range[1]);
         }
 
         //--Position of alpha-gammas from Rn222 chain
         if(parameters::gen_alpha_gamma == true) {
 	    if(event % 2 ==0) { //Alpha event
                 position_list[event][0] = alpha_gamma->GetRandom();
-                position_list[event][1] = gRandom->Uniform(parameters::entire_y_position_range[0],parameters::entire_y_position_range[1]);
-                position_list[event][2] = gRandom->Uniform(parameters::entire_z_position_range[0],parameters::entire_z_position_range[1]);
+                position_list[event][1] = gRandom->Uniform(parameters::y_position_range[0],parameters::y_position_range[1]);
+                position_list[event][2] = gRandom->Uniform(parameters::z_position_range[0],parameters::z_position_range[1]);
 	    }
 	    else { //Gamma event
 		a_gamma_distance = gRandom->Exp(gamma_length);
@@ -350,7 +352,7 @@ int main() {
 
 
 	//---------SET THESE FOR FIXED POSITIONS----------//
-        //position_list[event][0] = gRandom->Uniform(310.0,parameters::entire_x_position_range[1]);
+        //position_list[event][0] = gRandom->Uniform(310.0,parameters::x_position_range[1]);
         //position_list[event][0] = 5.0; //Fixed x position
         //position_list[event][1] = 0.0; //Fixed y position
         //position_list[event][2] = 200.0; //Fixed z position
@@ -368,112 +370,221 @@ int main() {
 	//--loop each event in events list
 	for(int event = 0; event < max_events; event++) {
 
-	//--output completion %
-        if ( (event != 0) && (max_events >= 10) &&  (event % (max_events/10) == 0) ) {
-            std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
+	  //--output completion %
+    if ( (event != 0) && (max_events >= 10) &&  (event % (max_events/10) == 0) ) {
+        std::cout << Form("%i0%% Completed...\n", event / (max_events/10));
+    }
+
+    // particle type 
+    bool isAlpha = false;
+    if (parameters::gen_alpha_gamma == true && event % 2 == 0) isAlpha = true;
+    else if (parameters::particle_type == 1) isAlpha = true;
+
+    // number of photons produced
+	  int number_photons;
+	  if(isAlpha) { 
+		  number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+	  }
+    else number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+
+    // singlet/triplet fraction
+    double singlet_fraction;
+    double triplet_fraction;
+    if (isAlpha) {
+      singlet_fraction = parameters::singlet_fraction_alpha;
+      triplet_fraction = parameters::triplet_fraction_alpha;
+    }
+    else {
+      singlet_fraction = parameters::singlet_fraction_electron;
+      triplet_fraction = parameters::triplet_fraction_electron;      
+    }
+
+    // determine number of photons detected and their timing:
+    // get scintillation position
+    TVector3 ScintPoint(position_list[event][0],position_list[event][1],position_list[event][2]);
+    
+    // detector global QE
+    double globalQE_VUV = parameters::quantum_efficiency * parameters::wireplane_factor * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only);
+    double globalQE_VIS = parameters::quantum_efficiency * parameters::wireplane_factor * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only);
+    
+    // loop over each optical channel
+    for(int op_channel = 0; op_channel < number_opdets; op_channel++) {
+
+      // get optical detector type - rectangular or disk aperture
+      int op_channel_type = opdet_type[op_channel][1];
+
+      // get detection channel coordinates (in cm)
+      TVector3 OpDetPoint(opdet_position[op_channel][0],opdet_position[op_channel][1],opdet_position[op_channel][2]);
+
+      // determine number of hits on optical channel via semi-analytic model:  
+
+      // VUV
+      // calculate detected photons
+      int num_VUV_Ar = 0;
+      int num_VUV_Xe = 0;
+      if (parameters::simulate_xenon == false) { // argon only case            
+        // incident photons
+        int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type, 0);       // calculate hits       
+        // apply additional factors QE etc.            
+        for(int i = 0; i < num_VUV_geo; i++) if (gRandom->Uniform(1.) <= globalQE_VUV) num_VUV_Ar++;
+      }
+      if (parameters::simulate_xenon == true) { // xenon doped case         
+        // split into prompt and late light
+        int number_photons_Ar = std::round(number_photons*singlet_fraction);
+        int number_photons_Xe = std::round(number_photons*triplet_fraction);
+
+        // incident photons
+        int num_VUV_geo_Ar = hits_model.VUVHits(number_photons_Ar, ScintPoint, OpDetPoint, op_channel_type, 0);       // prompt light as argon
+        int num_VUV_geo_Xe = hits_model.VUVHits(number_photons_Xe, ScintPoint, OpDetPoint, op_channel_type, 1);       // late light as xenon       
+        // apply additional factors QE etc.            
+        for(int i = 0; i < num_VUV_geo_Ar; i++) if (gRandom->Uniform(1.) <= globalQE_VUV) num_VUV_Ar++;
+        for(int i = 0; i < num_VUV_geo_Xe; i++) if (gRandom->Uniform(1.) <= globalQE_VUV) num_VUV_Xe++;
+      }  
+
+      // Visible (foils)
+      // calculate detected photons
+      int num_VIS_Ar = 0;
+      int num_VIS_Xe = 0;
+      if (parameters::include_reflected) {
+        if (parameters::simulate_xenon == false) { // argon only case  
+          // incident photons
+          int num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type, 0);     // calculate hits       
+          // apply additional factors QE etc.
+          for(int j = 0; j < num_VIS_geo; j++) if (gRandom->Uniform(1.) <= globalQE_VIS) num_VIS_Ar++;
+        }
+        if (parameters::simulate_xenon == true) { // xenon doped case         
+          // split into prompt and late light
+          int number_photons_Ar = std::round(number_photons*singlet_fraction);
+          int number_photons_Xe = std::round(number_photons*triplet_fraction);
+
+          // incident photons
+          int num_VIS_geo_Ar = hits_model.VisHits(number_photons_Ar, ScintPoint, OpDetPoint, op_channel_type, 0);     // prompt light as argon
+          int num_VIS_geo_Xe = hits_model.VisHits(number_photons_Xe, ScintPoint, OpDetPoint, op_channel_type, 1);     // late light as xenon      
+          // apply additional factors QE etc.
+          for(int j = 0; j < num_VIS_geo_Ar; j++) if (gRandom->Uniform(1.) <= globalQE_VIS) num_VIS_Ar++;
+          for(int j = 0; j < num_VIS_geo_Xe; j++) if (gRandom->Uniform(1.) <= globalQE_VIS) num_VIS_Xe++;
+        }
+      }
+     
+      // if no photons from this event for this optical channel, go to the next channel.
+      int num_VUV = num_VUV_Ar + num_VUV_Xe;
+      int num_VIS = num_VIS_Ar + num_VIS_Xe;
+      if(num_VUV+num_VIS == 0) { continue; } // forces the next iteration
+
+      // calculate timings
+      std::vector<double> total_time_vuv; total_time_vuv.reserve(num_VUV);
+      std::vector<double> total_time_vis; total_time_vis.reserve(num_VIS);
+      if (parameters::include_timings){
+        // split into Ar/Xe
+        std::vector<double> total_time_vuv_Ar; total_time_vuv_Ar.reserve(num_VUV_Ar);
+        std::vector<double> total_time_vuv_Xe; total_time_vuv_Xe.reserve(num_VUV_Xe);
+        std::vector<double> total_time_vis_Ar; total_time_vis_Ar.reserve(num_VIS_Ar);
+        std::vector<double> total_time_vis_Xe; total_time_vis_Xe.reserve(num_VIS_Xe);
+
+        // VUV, Ar                  
+        if(num_VUV_Ar > 0) {
+          
+          // transport times
+          double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
+          double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance_to_pmt;
+          double theta = acos(cosine)*180./3.14159;
+          int angle_bin = theta/45;       // 45 deg bins    
+
+          std::vector<double> transport_time_vuv_Ar = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
+
+          for(auto& x: transport_time_vuv_Ar) {
+      			// emission time
+            double emission_time;
+            if (parameters::simulate_xenon == false) {
+              if (isAlpha) emission_time = utility.get_scintillation_time_alpha()*1000000.0; // in us
+              else emission_time = utility.get_scintillation_time_electron()*1000000.0; // in us
+            }
+            if (parameters::simulate_xenon == true) { // in this case all remaining argon light is prompt
+              emission_time = utility.get_scintillation_time_prompt()*1000000.0; // in us
+            }
+           
+            // total time
+            double total_time = (x*0.001 + emission_time + 2.5*0.001); // in microseconds	   
+            total_time_vuv_Ar.push_back(total_time);
+          }
+        }
+        // VUV, Xe
+        if(num_VUV_Xe > 0) {
+
+          // transport times
+          double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
+          std::vector<double> transport_time_vuv_Xe = times_model.getVUVTimeXe(distance_to_pmt, num_VUV);
+
+          for(auto& x: transport_time_vuv_Xe) {
+            // emission time
+            double emission_time = utility.get_scintillation_time_xenon()*1000000.0; // in us       
+           
+            // total time
+            double total_time = (x*0.001 + emission_time + 2.5*0.001); // in microseconds    
+            total_time_vuv_Xe.push_back(total_time);
+          }
+        } 
+        
+        // VIS,
+        if (num_VIS > 0 && parameters::include_reflected) {
+          // Ar
+          if (num_VIS_Ar > 0) {
+            
+            // transport times
+            std::vector<double> transport_time_vis_Ar = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS_Ar);
+
+            for(auto& y: transport_time_vis_Ar) {
+              // emission time
+              double emission_time;
+              if (parameters::simulate_xenon == false) {
+                if (isAlpha) emission_time = utility.get_scintillation_time_alpha()*1000000.0; // in us
+                else emission_time = utility.get_scintillation_time_electron()*1000000.0; // in us
+              }
+              if (parameters::simulate_xenon == true) { // in this case all remaining argon light is prompt
+                emission_time = utility.get_scintillation_time_prompt()*1000000.0; // in us
+              }
+
+              // total time
+              double total_time = (y*0.001 + emission_time + 2.5*0.001); // in microseconds
+              total_time_vis_Ar.push_back(total_time);
+            }
+          }
+          // Xe
+          if(num_VIS_Xe > 0) {
+
+            // transport times
+            std::vector<double> transport_time_vis_Xe = times_model.getVisTimeXe(ScintPoint, OpDetPoint, num_VIS_Xe);
+
+            for(auto& x: transport_time_vis_Xe) {
+              // emission time
+              double emission_time = utility.get_scintillation_time_xenon()*1000000.0; // in us       
+             
+              // total time
+              double total_time = (x*0.001 + emission_time + 2.5*0.001); // in microseconds    
+              total_time_vis_Xe.push_back(total_time);
+            }
+          }          
         }
 
-	int number_photons;
-	//--Setting scintillation for Alpha-gammas
-        if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
-        // calculate total scintillation yield from the event
-        number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
-	}
+        // combine timings into single vectors for Direct and Reflected light
+        total_time_vuv = total_time_vuv_Ar; total_time_vuv.insert( total_time_vuv.end(), total_time_vuv_Xe.begin(), total_time_vuv_Xe.end() );
+        total_time_vis = total_time_vis_Ar; total_time_vis.insert( total_time_vis.end(), total_time_vis_Xe.begin(), total_time_vis_Xe.end() );    
 
-	else { 
-	number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
-	}
-	
-        // loop over each optical channel
-        for(int op_channel = 0; op_channel < number_opdets; op_channel++) {
+      } // end timings block
 
-                // get optical detector type - rectangular or disk aperture
-                int op_channel_type = opdet_type[op_channel][1];
+      // fill data trees for each photon detected
+      if (parameters::include_timings) output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint, total_time_vuv, total_time_vis);
+      else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
 
-                // get scintillation point and detection channel coordinates (in cm)
-            TVector3 ScintPoint(position_list[event][0],position_list[event][1],position_list[event][2]);
-            TVector3 OpDetPoint(opdet_position[op_channel][0],opdet_position[op_channel][1],opdet_position[op_channel][2]);
-
-            // determine number of hits on optical channel via semi-analytic model:
-            // VUV
-            int num_VUV = 0;
-            // incident photons
-            int num_VUV_geo = hits_model.VUVHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);       // calculate hits       
-            // apply additional factors QE etc.            
-            for(int i = 0; i < num_VUV_geo; i++) {
-                if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::vuv_transmission * (parameters::opdet_fraction_both + parameters::opdet_fraction_vuv_only)) num_VUV++;
-            }
-            // Visible
-            int num_VIS = 0;
-            if (parameters::include_reflected) {
-                // incident photons
-                int num_VIS_geo = 0;
-                num_VIS_geo = hits_model.VisHits(number_photons, ScintPoint, OpDetPoint, op_channel_type);  // calculate hits with hotspot model        
-                // apply additional factors QE etc.
-                for(int j = 0; j < num_VIS_geo; j++) {
-                        if (gRandom->Uniform(1.) <= parameters::quantum_efficiency * parameters::wireplane_factor * parameters::cathode_tpb_frac * parameters::vis_transmission * (parameters::opdet_fraction_both +  parameters::opdet_fraction_visible_only)) num_VIS++;
-                }
-            }
-
-            // if no photons from this event for this optical channel, go to the next channel.
-            if(num_VUV+num_VIS == 0) { continue; } // forces the next iteration
-
-            // calculate timings
-            std::vector<double> total_time_vuv; total_time_vuv.reserve(num_VUV);
-            std::vector<double> total_time_vis; total_time_vis.reserve(num_VIS);
-            if (parameters::include_timings){
-                // VUV                  
-                if(num_VUV > 0) {
-                        // transport times
-                        double distance_to_pmt = (OpDetPoint-ScintPoint).Mag();
-                        double cosine = sqrt(pow(ScintPoint[0] - OpDetPoint[0],2)) / distance_to_pmt;
-                                        double theta = acos(cosine)*180./3.14159;
-                                        int angle_bin = theta/45;       // 45 deg bins    
-
-                        std::vector<double> transport_time_vuv = times_model.getVUVTime(distance_to_pmt, angle_bin, num_VUV);
-
-			double total_time;
-                        // total times
-                        for(auto& x: transport_time_vuv) {
-				if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
-                                total_time = (x*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
-				}
-				else {
-				total_time = (x*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
-			        }
-                                total_time_vuv.push_back(total_time);
-                        }
-                }
-                // VIS
-                if (num_VIS > 0 && parameters::include_reflected) {
-                        // transport times
-                        std::vector<double> transport_time_vis = times_model.getVisTime(ScintPoint, OpDetPoint, num_VIS);
-
-			double total_time;
-                        // total times
-                        for(auto& y: transport_time_vis) {
-				if(parameters::gen_alpha_gamma == true && event % 2 == 0) { //Alpha event
-                                total_time = (y*0.001 + utility.get_scintillation_time_alpha()*1000000. + 2.5*0.001); // in microseconds
-				}
-				else {
-				total_time = (y*0.001 + utility.get_scintillation_time()*1000000. + 2.5*0.001); // in microseconds
-				}
-                                total_time_vis.push_back(total_time);
-                        }
-                }
-            }
-
-            // fill data trees for each photon detected
-            if (parameters::include_timings) output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint, total_time_vuv, total_time_vis);
-            else output_file.add_data(event, op_channel, num_VUV, num_VIS, ScintPoint);
-
-        } // end of optical channel loop
+    } // end of optical channel loop
 	
 	} // end of event loop
 
+  // close alpha file if opened
 	if(parameters::gen_alpha_gamma == true) {
-	f_alpha->Close();
+	  f_alpha->Close();
 	}
+
 	// write output root file
 	output_file.write_output_file();
 

@@ -1,6 +1,7 @@
 // implementation of utility functions class
 
 #include "utility_functions.h"
+
 #include <cmath>
 #include "TMath.h" //chrisflynn
 #include "TVector3.h" //chriflynn
@@ -14,7 +15,10 @@
 // destructor
 utility_functions::~utility_functions(){
 	//if fScintillation_function != nullptr {
-		delete fScintillation_function;
+		delete fScintillation_function_electron;
+		delete fScintillation_function_alpha;
+		delete fScintillation_function_prompt;
+		delete fScintillation_function_xenon;
 	//}
 }
 
@@ -52,19 +56,8 @@ double utility_functions::scintillation_function(const double *t, const double *
 	double time = *t;
 	double t_singlet = par[0];
 	double t_triplet = par[1];
-	double type = par[2]; 		// type will be defined at 0 or 1, 0 is an electron, 1 is an alpha particle
-	double singlet_part;
-	double triplet_part;
-
-	if(type == 0){ // particle is an electron
-	  singlet_part = 0.30;
-	  triplet_part = 0.70;
-	}
-
-	if(type == 1){ // particle is an alpha
-	  singlet_part = 0.75;
-	  triplet_part = 0.25;
-	}
+	double singlet_part = par[2];
+	double triplet_part = par[3];	
 
 	double Scintillation = exp(-(time/t_singlet))*singlet_part/t_singlet + exp(-(time/t_triplet))*triplet_part/t_triplet;
 
@@ -72,26 +65,45 @@ double utility_functions::scintillation_function(const double *t, const double *
 }
 
 // function to create scintillation function TF1 with required parameters
-void utility_functions::initalise_scintillation_function(const double t_singlet, const double t_triplet, const double scint_time_window, const double particle_type) {
+void utility_functions::initalise_scintillation_functions_argon(const double t_singlet, const double t_triplet, const double singlet_fraction_electron, 
+																const double triplet_fraction_electron, const double singlet_fraction_alpha, const double triplet_fraction_alpha, 
+																const double scint_time_window) {
 
-	// create scintillation spectrum
-	fScintillation_function = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 3);
-	fScintillation_function->SetParameter(0, t_singlet); 
-    fScintillation_function->SetParameter(1, t_triplet);  
-    if(particle_type == 0) fScintillation_function->FixParameter(2, 0); 	// electron  
-    if(particle_type == 1) fScintillation_function->FixParameter(2, 1);		// alpha
-    fScintillation_function->SetNpx(50000);
+	// create scintillation spectrum for electrons
+	fScintillation_function_electron = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 4);
+	fScintillation_function_electron->SetParameter(0, t_singlet); 
+    fScintillation_function_electron->SetParameter(1, t_triplet);
+    fScintillation_function_electron->SetParameter(2, singlet_fraction_electron);
+    fScintillation_function_electron->SetParameter(3, triplet_fraction_electron);  
+    fScintillation_function_electron->SetNpx(50000);
+
+    // create scintillation spectrum for alphas
+	fScintillation_function_alpha = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 4);
+	fScintillation_function_alpha->SetParameter(0, t_singlet); 
+    fScintillation_function_alpha->SetParameter(1, t_triplet);
+    fScintillation_function_alpha->SetParameter(2, singlet_fraction_alpha);
+    fScintillation_function_alpha->SetParameter(3, triplet_fraction_alpha);    
+    fScintillation_function_alpha->SetNpx(50000);
+
+    // create scintillation spectrum for prompt only case
+	fScintillation_function_prompt = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 4);
+	fScintillation_function_prompt->SetParameter(0, t_singlet); 
+    fScintillation_function_prompt->SetParameter(1, t_triplet);  
+    fScintillation_function_prompt->SetParameter(2, 1.00);
+    fScintillation_function_prompt->SetParameter(3, 0.00);
+    fScintillation_function_prompt->SetNpx(50000);
 }
 
-// function to create scintillation function TF1 with required parameters for alpha events
-void utility_functions::initalise_scintillation_function_alpha(const double t_singlet, const double t_triplet, const double scint_time_window, const double particle_type) {
+void utility_functions::initalise_scintillation_functions_xenon(const double t_singlet_Xe, const double t_triplet_Xe, const double singlet_fraction_Xe, 
+																const double triplet_fraction_Xe, const double scint_time_window) { 
 
-        // create scintillation spectrum
-        fScintillation_function_alpha = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 3);
-        fScintillation_function_alpha->SetParameter(0, t_singlet);
-    fScintillation_function_alpha->SetParameter(1, t_triplet);
-    fScintillation_function_alpha->FixParameter(2, 1);    // alpha
-    fScintillation_function->SetNpx(50000);
+    // create scintillation spectrum for xenon
+	fScintillation_function_xenon = new TF1("Scintillation Timing", scintillation_function, 0, scint_time_window, 4);
+	fScintillation_function_xenon->SetParameter(0, t_singlet_Xe); 
+    fScintillation_function_xenon->SetParameter(1, t_triplet_Xe);
+    fScintillation_function_xenon->SetParameter(2, singlet_fraction_Xe);
+    fScintillation_function_xenon->SetParameter(3, triplet_fraction_Xe);  
+    fScintillation_function_xenon->SetNpx(50000);
 }
 
 //Beta Decay Function ///chrisflynn
