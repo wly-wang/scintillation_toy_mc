@@ -377,11 +377,14 @@ int main() {
 
     // particle type 
     bool isAlpha = false;
-    if ((parameters::gen_alpha_gamma == true && event % 2 == 0) || parameters::particle_type == 1) isAlpha == true;
+    if (parameters::gen_alpha_gamma == true && event % 2 == 0) isAlpha = true;
+    else if (parameters::particle_type == 1) isAlpha = true;
 
     // number of photons produced
 	  int number_photons;
-	  if(isAlpha) number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+	  if(isAlpha) { 
+		  number_photons = utility.poisson(static_cast<double>(parameters::scint_yield_alpha) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
+	  }
     else number_photons = utility.poisson(static_cast<double>(parameters::scintillation_yield) * energy_list.at(event), gRandom->Uniform(1.), energy_list.at(event));
 
     // singlet/triplet fraction
