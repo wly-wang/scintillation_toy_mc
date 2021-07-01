@@ -89,7 +89,7 @@ void time_parameterisation::generateparam(const int &index, const int &angle_bin
     const int nq_max=1;
     double xq_max[nq_max];
     double yq_max[nq_max];    
-    xq_max[0] = 0.995;   // include 99.5% of tail
+    xq_max[0] = 0.975;   // include 97.5% of tail
     fVUVTiming.GetQuantiles(nq_max,yq_max,xq_max);
     double max = yq_max[0];
     // min
