@@ -11,13 +11,13 @@ namespace parameters {
     //--------Simulation Settings-----------
     ///-------------------------------------
     // Xenon doping
-    const bool simulate_xenon = true;   // enables xenon doping, false = pure argon
+    const bool simulate_xenon = false;   // enables xenon doping, false = pure argon
 
     // WLS Reflective foils
     const bool include_reflected = false; // enables WLS relfective foils on the cathode (visible light)
 
     // Timings
-    const bool include_timings = true;   // enables timings (emission and transport)  
+    const bool include_timings = false;   // enables timings (emission and transport)  
 
 
     ///-------------------------------------
@@ -63,11 +63,10 @@ namespace parameters {
 	//---------Dimensions of event region-----------
 	//----------------------------------------------
 	// region to generate events in
-    const double x_position_range[2] {5,360};	// cm from anode [Note can get problems from too much light if generating events < 5 cm from anode]
-	const double y_position_range[2] {-600,600};	// cm
+    const double x_position_range[2] {-354.,354.};	// cm from anode [Note can get problems from too much light if generating events < 5 cm from anode]
+	const double y_position_range[2] {-600.,600};	// cm
 	//const double z_position_range[2] {400,1000};	// cm [this comes from the "middle third"]
-    const double z_position_range[2] {0,1400};   // cm
-
+    const double z_position_range[2] {0,1394.};   // cm
 
 
     //chrisflynn mass
@@ -124,21 +123,21 @@ namespace parameters {
     const int max_events_alpha_gamma = 2000; //This is the number of alpha and gammas added together, e.g for 2 events get 1 alpha and 1 gamma
 
     // TPC boundaries (for alpha-gammas)
-    const double max_x = 363.0;
-    const double min_x = 1.0;
-    const double max_y = 600.0;
-    const double min_y = -600.0;
-    const double max_z = 1400.0;
+    const double max_x = 359.4;
+    const double min_x = -359.4;
+    const double max_y = 600.019;
+    const double min_y = -600.019;
+    const double max_z = 1394.34;
     const double min_z = 0.0;
 
     // timing parametersiation properties
     const double timing_discretisation_step_size = 1.0; // cm
     
 	// photon detection system properties
-	const double quantum_efficiency = 0.035;	   // arapuca QE
+	const double quantum_efficiency = 0.03;	   // arapuca QE
 	const double wireplane_factor = 1.0;           // included in parameterisations	
 	const double vuv_transmission = 0.5;           // PD window transmission: VUV Ar/Xe scintillation light
-	const double vis_transmission = 0.7;           // PD window transmission: Visible light (foils)
+	const double vis_transmission = 0.;           // PD window transmission: Visible light (foils)
     
     // fraction PDs sensitive to each component
     const double opdet_fraction_vuv_only = 0.0;

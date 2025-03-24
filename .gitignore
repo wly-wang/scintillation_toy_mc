@@ -5,6 +5,7 @@
 *.o
 *.png
 *.pid
+.nfs*
 analyze_light
 
 !optical_detectors_dune1x2x6.txt

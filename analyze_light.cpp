@@ -224,7 +224,7 @@ int main() {
 
 	std::cout << "Loading Photon Detector positions..." << std::endl;
         std::ifstream detector_positions_file;
-        detector_positions_file.open("optical_detectors_dune1x2x6.txt");
+        detector_positions_file.open("optical_detectors_dune_1x2x6_doubledrift_cpaPDs.txt");
         if(detector_positions_file.is_open()) std::cout << "File opened successfully" << std::endl;
         else {std::cout << "File not found." << std::endl; exit(1);}
         while(!detector_positions_file.eof()) {
