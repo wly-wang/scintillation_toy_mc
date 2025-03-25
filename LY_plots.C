@@ -37,7 +37,6 @@ void LY(const char *infilename) {
 	int data_event_vuv, data_pmt_vuv;
 	data_tree_vuv->SetBranchAddress("data_event_vuv", &data_event_vuv);
     data_tree_vuv->SetBranchAddress("data_pmt_vuv", &data_pmt_vuv);
-    //cout<<data_pmt_vuv<<endl;
 
 	TTree *event_tree = nullptr;
 	filein->GetObject("event_tree", event_tree);
@@ -53,6 +52,8 @@ void LY(const char *infilename) {
 	int number_events = event_tree->GetEntries();
 	vector<int> hits_both(number_events,0);
 	vector<int> hits_vuv(number_events,0);
+	vector<int> hits_vuv_anode(number_events, 0);
+	vector<int> hits_vuv_cathode(number_events, 0);
 	// vector<int> hits_vis(number_events,0);
 
 	int size_data_tree = data_tree->GetEntries();
@@ -64,12 +65,15 @@ void LY(const char *infilename) {
 	cout << "data tree complete" << endl;
 
 	int size_data_tree_vuv = data_tree_vuv->GetEntries();
-    int number_of_opDet = 912;
-    vector<int> new_hits_vuv(number_of_opDet, 0);
+    int number_of_opDet_anode = 480;  // 0-479 anode 480-912 cathode PDs
 	for (int i = 0; i < size_data_tree_vuv; i++) {
 		data_tree_vuv->GetEntry(i);
 		hits_vuv[data_event_vuv]++;
-        new_hits_vuv[data_pmt_vuv]++;
+        if (data_pmt_vuv < number_of_opDet_anode){
+			hits_vuv_anode[data_event_vuv]++;
+		} else {
+			hits_vuv_cathode[data_event_vuv]++;
+		}
 	}
 	cout << "vuv only data tree complete" << endl;
 
@@ -96,7 +100,7 @@ void LY(const char *infilename) {
     vector<double> err_y_vuv_cathode;
 
 
-	double bin_step = 20;
+	double bin_step = 30.;
 	double drift_size = 718.;
 	
 	// loop over bins in x, calculating light yield
@@ -119,20 +123,17 @@ void LY(const char *infilename) {
 				//double LY_val_both = hits_both[event_no]/event_E;
 				//double LY_val_vis = hits_vis[event_no]/event_E;
 				double LY_val_vuv = hits_vuv[event_no]/event_E;
+				double LY_val_vuv_anode = hits_vuv_anode[event_no]/event_E;
+				double LY_val_vuv_cathode = hits_vuv_cathode[event_no]/event_E;
 
 				//LY_vals_both.push_back(LY_val_both);
 				LY_vals_vuv.push_back(LY_val_vuv);
 				//LY_vals_vis.push_back(LY_val_vis);
-                if (data_pmt_vuv <= 479){
-                    LY_vals_vuv_anode.push_back(LY_val_vuv);
-                } else {
-                    LY_vals_vuv_cathode.push_back(LY_val_vuv);
-                }
-                
+				LY_vals_vuv_anode.push_back(LY_val_vuv_anode);
+				LY_vals_vuv_cathode.push_back(LY_val_vuv_cathode);
                 
 			}
 		}
-        cout<<LY_vals_vuv_anode.size()<<endl;
 		// calculate mean and stdev of LY for this bin for plotting 
 		double m_both, m_vuv, m_vuv_anode, m_vuv_cathode; // ,m_vis; 
         double stdev_both, stdev_vuv, stdev_vuv_anode, stdev_vuv_cathode; // ,stdev_vis;		
@@ -214,15 +215,15 @@ void LY(const char *infilename) {
 	// TGraph *gr3 = new TGraphErrors(x_bin.size(), &(x_bin[0]),&(LY_vis[0]),&(err_x[0]),&(err_y_vis[0]));
 
 	//gr1->SetMarkerColor(1);
-	gr2->SetMarkerColor(4);
+	gr2->SetMarkerColor(1);
     gr3->SetMarkerColor(2);
-    gr4->SetMarkerColor(3);
+    gr4->SetMarkerColor(4);
 	//gr3->SetMarkerColor(2);
 
 	//gr1->SetLineColor(1);
-	gr2->SetLineColor(4);
+	gr2->SetLineColor(1);
     gr3->SetLineColor(2);
-    gr4->SetLineColor(3);
+    gr4->SetLineColor(4);
 	//gr3->SetLineColor(2);
 
 	//gr1->SetMarkerStyle(20);
@@ -232,9 +233,9 @@ void LY(const char *infilename) {
 	//gr3->SetMarkerStyle(23);
 
 	///gr1->SetMarkerSize(2);
-	gr2->SetMarkerSize(2);
-    gr3->SetMarkerSize(2);
-    gr4->SetMarkerSize(2);
+	gr2->SetMarkerSize(2.5);
+    gr3->SetMarkerSize(1);
+    gr4->SetMarkerSize(1);
 	//gr3->SetMarkerSize(2);
 
 	//legend->AddEntry(gr1, "Total" ,"p");
