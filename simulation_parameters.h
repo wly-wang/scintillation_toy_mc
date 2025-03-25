@@ -11,7 +11,7 @@ namespace parameters {
     //--------Simulation Settings-----------
     ///-------------------------------------
     // Xenon doping
-    const bool simulate_xenon = false;   // enables xenon doping, false = pure argon
+    const bool simulate_xenon = True;   // enables xenon doping, false = pure argon
 
     // WLS Reflective foils
     const bool include_reflected = false; // enables WLS relfective foils on the cathode (visible light)
